@@ -1,0 +1,85 @@
+# Load Balancer module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/load-balancer/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   azure_location = "eastus"
+#   default_tags   = { Environment = "prod", ManagedBy = "terraform" }
+#
+# Load balancer requires a VNet. Use vnet_key to auto-wire from the VNet module.
+
+# ---------------------------------------------------------------------------
+# Internet-facing load balancer with TCP listener
+# ---------------------------------------------------------------------------
+
+load_balancers = {
+  public = {
+    name               = "my-company-public-lb-prod"
+    resource_group_key = "main"
+    vnet_key           = "main"
+
+    target_groups = {
+      app = {
+        port     = 8080
+        protocol = "Tcp"
+      }
+    }
+
+    listeners = {
+      tcp = {
+        port             = 8080
+        protocol         = "Tcp"
+        target_group_key = "app"
+      }
+    }
+
+    tags = {
+      Purpose = "public-lb"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Internal load balancer in private subnets
+# ---------------------------------------------------------------------------
+# load_balancers = {
+#   internal = {
+#     name               = "my-company-internal-lb-prod"
+#     resource_group_key = "main"
+#     vnet_key           = "main"
+#     internal           = true
+#     subnet_ids         = ["subnet-private-a-id", "subnet-private-b-id"]
+#
+#     target_groups = {
+#       app = {
+#         port     = 9090
+#         protocol = "Tcp"
+#       }
+#     }
+#
+#     listeners = {
+#       tcp = {
+#         port             = 9090
+#         protocol         = "Tcp"
+#         target_group_key = "app"
+#       }
+#     }
+#
+#     tags = { Purpose = "internal-lb" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Register IP targets (e.g. VM private IPs)
+# ---------------------------------------------------------------------------
+# target_groups = {
+#   app = {
+#     port     = 8080
+#     protocol = "Tcp"
+#     targets = [
+#       { ip_address = "10.0.11.50" },
+#       { ip_address = "10.0.12.50" },
+#     ]
+#   }
+# }

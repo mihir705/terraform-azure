@@ -1,0 +1,51 @@
+# Resource Group module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/resource-group/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   location     = "eastus"
+#   default_tags = { Environment = "prod", ManagedBy = "terraform" }
+
+# ---------------------------------------------------------------------------
+# Basic — shared application resource group
+# ---------------------------------------------------------------------------
+
+resource_groups = {
+  app = {
+    resource_group_name = "rg-mycompany-app-prod"
+    location            = "eastus"
+
+    tags = {
+      Purpose = "application"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Network foundation resource group
+# ---------------------------------------------------------------------------
+# resource_groups = {
+#   network = {
+#     resource_group_name = "rg-mycompany-network-prod"
+#     location            = "eastus"
+#
+#     tags = {
+#       Purpose = "network"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Data platform resource group
+# ---------------------------------------------------------------------------
+# resource_groups = {
+#   data = {
+#     resource_group_name = "rg-mycompany-data-prod"
+#     location            = "westeurope"
+#
+#     tags = {
+#       Purpose = "data-platform"
+#     }
+#   }
+# }

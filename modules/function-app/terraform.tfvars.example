@@ -1,0 +1,79 @@
+# Function App module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/function-app/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   location            = "eastus"
+#   resource_group_name = "my-company-rg-prod"
+#   default_tags        = { Environment = "prod", ManagedBy = "terraform" }
+
+# ---------------------------------------------------------------------------
+# Linux consumption function with zip deployment
+# ---------------------------------------------------------------------------
+
+function_apps = {
+  api-handler = {
+    name                = "my-company-api-prod"
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    os_type             = "Linux"
+    service_plan_sku    = "Y1"
+    runtime_name        = "python"
+    runtime_version     = "3.12"
+    package_source_dir  = "function-src/api-handler"
+
+    app_settings = {
+      ENV = "prod"
+    }
+
+    tags = {
+      Purpose = "api-handler"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Premium function with VNet integration and managed identity
+# ---------------------------------------------------------------------------
+# function_apps = {
+#   private-processor = {
+#     name                = "my-company-processor-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     service_plan_sku    = "EP1"
+#     runtime_name        = "python"
+#     runtime_version     = "3.12"
+#
+#     vnet_key   = "main"
+#     subnet_key = "functions"
+#
+#     identity = {
+#       type = "SystemAssigned"
+#     }
+#
+#     site_config = {
+#       vnet_route_all_enabled = true
+#     }
+#
+#     tags = { Purpose = "private-processor" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Windows .NET isolated function
+# ---------------------------------------------------------------------------
+# function_apps = {
+#   dotnet-worker = {
+#     name                = "my-company-worker-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     os_type             = "Windows"
+#     service_plan_sku    = "EP1"
+#     use_dotnet_isolated = true
+#     dotnet_version      = "v8.0"
+#     package_path        = "build/worker.zip"
+#
+#     tags = { Purpose = "dotnet-worker" }
+#   }
+# }

@@ -1,0 +1,28 @@
+# Service Bus Queue module — terraform.tfvars example
+
+service_bus_queues = {
+  order-processor = {
+    resource_group_name     = "my-company-rg-prod"
+    location                = "eastus"
+    create_namespace        = false
+    existing_namespace_name = "my-company-sb-prod"
+    name                    = "order-processor"
+    create_dlq              = true
+    max_delivery_count      = 5
+    lock_duration           = "PT1M"
+
+    tags = {
+      Purpose = "order-processing"
+    }
+  }
+}
+
+# New namespace + queue:
+# service_bus_queues = {
+#   jobs = {
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     namespace_name      = "my-company-sb-prod"
+#     name                = "background-jobs"
+#   }
+# }

@@ -1,0 +1,150 @@
+# Container Apps module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/container-apps/README.md
+
+# ---------------------------------------------------------------------------
+# Container Apps Environment with HTTP-scaled API
+# ---------------------------------------------------------------------------
+
+container_app_environments = {
+  platform = {
+    name                = "my-company-cae-prod"
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    vnet_key            = "main"
+    subnet_key          = "container-apps"
+
+    container_apps = {
+      api = {
+        ingress = {
+          external_enabled = true
+          target_port      = 8080
+          transport        = "auto"
+        }
+
+        template = {
+          min_replicas = 1
+          max_replicas = 10
+
+          containers = {
+            api = {
+              name   = "api"
+              image  = "mycompanyprod.azurecr.io/api:latest"
+              cpu    = 0.5
+              memory = "1Gi"
+              env = [
+                { name = "ENV", value = "prod" }
+              ]
+            }
+          }
+
+          scale_rules = [
+            {
+              name = "http-scaling"
+              http = {
+                concurrent_requests = "100"
+              }
+            }
+          ]
+        }
+
+        tags = { Purpose = "api" }
+      }
+    }
+
+    tags = {
+      Purpose = "platform"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Internal environment with Key Vault secrets
+# ---------------------------------------------------------------------------
+# container_app_environments = {
+#   internal = {
+#     name                = "my-company-cae-internal-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     vnet_key            = "main"
+#     subnet_key          = "container-apps"
+#     internal_load_balancer_enabled = true
+#
+#     container_apps = {
+#       worker = {
+#         identity = {
+#           type         = "UserAssigned"
+#           identity_ids = ["/subscriptions/.../userAssignedIdentities/worker"]
+#         }
+#
+#         secrets = [
+#           {
+#             name                = "db-connection"
+#             key_vault_secret_id = "https://my-vault.vault.azure.net/secrets/db-connection"
+#             identity            = "/subscriptions/.../userAssignedIdentities/worker"
+#           }
+#         ]
+#
+#         template = {
+#           containers = {
+#             worker = {
+#               name   = "worker"
+#               image  = "mycompanyprod.azurecr.io/worker:latest"
+#               env = [
+#                 { name = "DATABASE_URL", secret_name = "db-connection" }
+#               ]
+#             }
+#           }
+#
+#           scale_rules = [
+#             {
+#               name = "queue-scaling"
+#               custom = {
+#                 type     = "azure-queue"
+#                 metadata = {
+#                   queueName  = "jobs"
+#                   accountName = "mycompanystorage"
+#                 }
+#                 auth_secret_name = "storage-connection"
+#               }
+#             }
+#           ]
+#         }
+#       }
+#     }
+#
+#     tags = { Purpose = "internal-worker" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Scale-to-zero background processor
+# ---------------------------------------------------------------------------
+# container_app_environments = {
+#   jobs = {
+#     name                = "my-company-cae-jobs-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#
+#     container_apps = {
+#       processor = {
+#         template = {
+#           min_replicas = 0
+#           max_replicas = 5
+#
+#           containers = {
+#             processor = {
+#               name   = "processor"
+#               image  = "mycompanyprod.azurecr.io/processor:latest"
+#               cpu    = 0.25
+#               memory = "0.5Gi"
+#             }
+#           }
+#         }
+#       }
+#     }
+#
+#     tags = { Purpose = "background-jobs" }
+#   }
+# }

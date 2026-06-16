@@ -1,0 +1,21 @@
+# Azure AD B2C module — terraform.tfvars example
+#
+# Documentation: modules/aadb2c/README.md
+#
+# After apply, configure user flows and app registrations in the B2C tenant portal
+# or via azuread provider with a tenant-scoped provider alias.
+
+aadb2c_directories = {
+  customer-auth = {
+    resource_group_name = "my-company-rg-prod"
+    country_code        = "US"
+    display_name        = "My Company Customer Auth"
+    domain_name         = "mycompanycustomers"
+    data_residency      = "United States"
+    sku_name            = "PremiumP1"
+
+    tags = {
+      Purpose = "customer-auth"
+    }
+  }
+}

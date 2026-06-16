@@ -1,0 +1,81 @@
+# CDN module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/cdn/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   azure_location = "eastus"
+#   default_tags   = { Environment = "prod", ManagedBy = "terraform" }
+
+# ---------------------------------------------------------------------------
+# Basic — CDN with managed origin storage account
+# ---------------------------------------------------------------------------
+
+cdn_profiles = {
+  static-site = {
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    name                = "my-company-cdn-prod"
+    endpoint_name       = "static-site"
+
+    origin_storage_account_name = "mycompanystaticprod"
+
+    tags = {
+      Purpose = "static-site"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Existing storage account as origin
+# ---------------------------------------------------------------------------
+# storage_accounts = {
+#   static-site = {
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     account_name        = "mycompanystaticprod"
+#   }
+# }
+#
+# cdn_profiles = {
+#   static-site = {
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     name                = "my-company-cdn-prod"
+#     endpoint_name       = "static-site"
+#
+#     create_origin_storage_account        = false
+#     existing_origin_storage_account_name = "mycompanystaticprod"
+#     storage_account_key                  = "static-site"
+#
+#     origin_path = "/$web"
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Custom domain
+# ---------------------------------------------------------------------------
+# cdn_profiles = {
+#   static-site = {
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     name                = "my-company-cdn-prod"
+#     endpoint_name       = "static-site"
+#
+#     origin_storage_account_name = "mycompanystaticprod"
+#
+#     custom_domains = {
+#       www = {
+#         host_name = "www.example.com"
+#       }
+#     }
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }

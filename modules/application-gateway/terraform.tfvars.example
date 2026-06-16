@@ -1,0 +1,39 @@
+# Application Gateway module — terraform.tfvars example
+#
+# Copy into environments/prod/terraform.tfvars
+# Documentation: modules/application-gateway/README.md
+
+application_gateways = {
+  web = {
+    name                = "my-web-gateway-prod"
+    resource_group_name = "my-rg-prod"
+    vnet_key            = "main"
+    subnet_key          = "public-a"
+    internal            = false
+
+    target_groups = {
+      app = {
+        port     = 8080
+        protocol = "Http"
+        targets = [
+          { ip_address = "10.0.1.4" }
+        ]
+      }
+    }
+
+    listeners = {
+      http = {
+        port     = 80
+        protocol = "Http"
+        default_action = {
+          type             = "forward"
+          target_group_key = "app"
+        }
+      }
+    }
+
+    tags = {
+      Purpose = "web-ingress"
+    }
+  }
+}
