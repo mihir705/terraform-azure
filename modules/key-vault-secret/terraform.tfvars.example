@@ -1,0 +1,79 @@
+# Key Vault Secret module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/key-vault-secret/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   location     = "eastus"
+#   default_tags = { Environment = "prod", ManagedBy = "terraform" }
+#
+# Never commit real secret values to version control.
+
+# ---------------------------------------------------------------------------
+# Basic — empty secret shell (value set outside Terraform)
+# ---------------------------------------------------------------------------
+
+key_vault_secrets = {
+  app-config = {
+    resource_group_name = "rg-mycompany-app-prod"
+    location            = "eastus"
+    name                = "app-config"
+
+    vault_key = {
+      name = "kv-mycompany-app-prod"
+    }
+
+    tags = {
+      Purpose = "app-config"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Generated random password (JSON with username + password)
+# ---------------------------------------------------------------------------
+# key_vault_secrets = {
+#   database-credentials = {
+#     resource_group_name = "rg-mycompany-app-prod"
+#     location            = "eastus"
+#     name                = "database-credentials"
+#
+#     vault_key = {
+#       name = "kv-mycompany-app-prod"
+#     }
+#
+#     generate_random_password = {
+#       length   = 32
+#       username = "db_admin"
+#     }
+#
+#     ignore_secret_changes = true
+#
+#     tags = {
+#       Purpose = "database-credentials"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Initial secret value (bootstrap only; prefer external rotation)
+# ---------------------------------------------------------------------------
+# key_vault_secrets = {
+#   api-key = {
+#     resource_group_name = "rg-mycompany-app-prod"
+#     location            = "eastus"
+#     name                = "api-key"
+#
+#     key_vault_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-mycompany-app-prod/providers/Microsoft.KeyVault/vaults/kv-mycompany-app-prod"
+#
+#     secret_value = jsonencode({
+#       api_key = "CHANGE_ME"
+#     })
+#
+#     ignore_secret_changes = true
+#
+#     tags = {
+#       Purpose = "api-key"
+#     }
+#   }
+# }

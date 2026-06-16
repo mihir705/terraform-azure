@@ -1,0 +1,82 @@
+# PostgreSQL Flexible Server module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/postgresql-flexible/README.md
+
+# ---------------------------------------------------------------------------
+# Private PostgreSQL with VNet integration and private DNS
+# ---------------------------------------------------------------------------
+
+postgresql_servers = {
+  app = {
+    name                = "my-company-pg-prod"
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    sku_name            = "GP_Standard_D2s_v3"
+    administrator_login = "pgadmin"
+    postgres_version    = "16"
+    storage_mb          = 65536
+
+    vnet_key                = "main"
+    subnet_key              = "database"
+    create_private_dns_zone = true
+
+    databases = {
+      app = {}
+    }
+
+    configurations = {
+      "azure.extensions" = { value = "CITEXT,HSTORE" }
+    }
+
+    tags = {
+      Purpose = "application-db"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Zone-redundant high availability
+# ---------------------------------------------------------------------------
+# postgresql_servers = {
+#   app-ha = {
+#     name                = "my-company-pg-ha-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     sku_name            = "GP_Standard_D2s_v3"
+#     administrator_login = "pgadmin"
+#
+#     vnet_key   = "main"
+#     subnet_key = "database"
+#
+#     high_availability = {
+#       mode = "ZoneRedundant"
+#     }
+#
+#     backup_retention_days        = 14
+#     geo_redundant_backup_enabled = true
+#
+#     tags = { Purpose = "ha-database" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Burstable dev instance with generated password
+# ---------------------------------------------------------------------------
+# postgresql_servers = {
+#   dev = {
+#     name                = "my-company-pg-dev"
+#     resource_group_name = "my-company-rg-dev"
+#     location            = "eastus"
+#     sku_name            = "B_Standard_B1ms"
+#     administrator_login = "pgadmin"
+#
+#     public_network_access_enabled = true
+#
+#     generate_password = {
+#       length = 32
+#     }
+#
+#     tags = { Purpose = "dev-database" }
+#   }
+# }

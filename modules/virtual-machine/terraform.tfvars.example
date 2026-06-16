@@ -1,0 +1,98 @@
+# Virtual Machine module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/virtual-machine/README.md
+
+# ---------------------------------------------------------------------------
+# Private app server with SSH key and cloud-init
+# ---------------------------------------------------------------------------
+
+virtual_machines = {
+  app = {
+    name                = "my-company-app-prod"
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    size                = "Standard_B2s"
+    admin_username      = "azureuser"
+    vnet_key            = "main"
+    subnet_key          = "private-a"
+    nsg_key             = "app"
+
+    source_image_reference = {
+      publisher = "Canonical"
+      offer     = "0001-com-ubuntu-server-jammy"
+      sku       = "22_04-lts-gen2"
+      version   = "latest"
+    }
+
+    admin_ssh_key = {
+      username   = "azureuser"
+      public_key = "ssh-rsa AAAAB3NzaC1yc2E... user@host"
+    }
+
+    os_disk = {
+      disk_size_gb = 64
+    }
+
+    custom_data = <<-EOF
+      #!/bin/bash
+      apt-get update && apt-get install -y nginx
+    EOF
+
+    tags = {
+      Purpose = "application-server"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Bastion with public IP in public subnet
+# ---------------------------------------------------------------------------
+# virtual_machines = {
+#   bastion = {
+#     name                = "my-company-bastion-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     size                = "Standard_B1s"
+#     admin_username      = "azureuser"
+#     vnet_key            = "main"
+#     subnet_key          = "public-a"
+#     nsg_key             = "bastion"
+#     create_public_ip    = true
+#
+#     source_image_reference = {
+#       publisher = "Canonical"
+#       offer     = "0001-com-ubuntu-server-jammy"
+#       sku       = "22_04-lts-gen2"
+#     }
+#
+#     admin_ssh_key = {
+#       username   = "azureuser"
+#       public_key = "ssh-rsa AAAAB3NzaC1yc2E... user@host"
+#     }
+#
+#     tags = { Purpose = "bastion" }
+#   }
+# }
+
+# Required companion resources for the app example above:
+#
+# network_security_groups = {
+#   app = {
+#     name      = "my-company-app-prod"
+#     vnet_key  = "main"
+#     rules = [
+#       {
+#         name                       = "AllowSSH"
+#         priority                   = 100
+#         direction                  = "Inbound"
+#         access                     = "Allow"
+#         protocol                   = "Tcp"
+#         source_port_range          = "*"
+#         destination_port_range     = "22"
+#         source_address_prefix      = "203.0.113.0/24"
+#         destination_address_prefix = "*"
+#       }
+#     ]
+#   }
+# }

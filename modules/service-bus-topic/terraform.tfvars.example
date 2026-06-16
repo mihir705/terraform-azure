@@ -1,0 +1,35 @@
+# Service Bus Topic module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/service-bus-topic/README.md
+
+service_bus_topics = {
+  app-alerts = {
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    namespace_name      = "my-company-sb-prod"
+    name                = "app-alerts"
+
+    subscriptions = {
+      processor = {
+        max_delivery_count = 10
+        sql_filter         = "severity = 'critical'"
+      }
+    }
+
+    tags = {
+      Purpose = "app-alerts"
+    }
+  }
+}
+
+# Reuse existing namespace from another stack:
+# service_bus_topics = {
+#   order-events = {
+#     resource_group_name       = "my-company-rg-prod"
+#     location                  = "eastus"
+#     create_namespace          = false
+#     existing_namespace_name   = "my-company-sb-prod"
+#     name                      = "order-events"
+#   }
+# }

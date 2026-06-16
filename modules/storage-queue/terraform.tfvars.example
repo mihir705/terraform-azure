@@ -1,0 +1,18 @@
+# Storage Queue module — terraform.tfvars example
+
+storage_queues = {
+  background-jobs = {
+    resource_group_name  = "my-company-rg-prod"
+    location             = "eastus"
+    storage_account_name = "mycompanyqueuesprod"
+    name                 = "background-jobs"
+
+    metadata = {
+      purpose = "background-processing"
+    }
+
+    tags = {
+      Purpose = "background-jobs"
+    }
+  }
+}

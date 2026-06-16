@@ -1,0 +1,23 @@
+# Key Vault Key module — terraform.tfvars example
+
+key_vault_keys = {
+  app-encryption = {
+    name      = "app-encryption"
+    vault_key = "app"
+    key_type  = "RSA"
+    key_size  = 2048
+    key_opts  = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+
+    rotation_policy = {
+      expire_after         = "P90D"
+      notify_before_expiry = "P30D"
+      automatic = {
+        time_before_expiry = "P30D"
+      }
+    }
+
+    tags = {
+      Purpose = "app-encryption"
+    }
+  }
+}

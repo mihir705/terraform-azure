@@ -1,0 +1,74 @@
+# Container Registry module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/container-registry/README.md
+
+# ---------------------------------------------------------------------------
+# Standard registry with managed identity (admin disabled)
+# ---------------------------------------------------------------------------
+
+container_registries = {
+  app = {
+    name                = "mycompanyprod"
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    sku                 = "Standard"
+    admin_enabled       = false
+
+    identity = {
+      type = "SystemAssigned"
+    }
+
+    tags = {
+      Purpose = "application-images"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Premium registry with network rules, retention, and geo-replication
+# ---------------------------------------------------------------------------
+# container_registries = {
+#   app = {
+#     name                = "mycompanyprod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     sku                 = "Premium"
+#     admin_enabled       = false
+#
+#     vnet_key = "main"
+#     subnet_keys = ["aks-a", "aks-b"]
+#
+#     network_rule_set = {
+#       default_action = "Deny"
+#       ip_rules = [
+#         { ip_range = "203.0.113.0/24" }
+#       ]
+#     }
+#
+#     retention_policy = {
+#       days    = 30
+#       enabled = true
+#     }
+#
+#     georeplications = [
+#       { location = "westus2" }
+#     ]
+#
+#     tags = { Purpose = "application-images" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Basic registry for development
+# ---------------------------------------------------------------------------
+# container_registries = {
+#   dev = {
+#     name                = "mycompanydev"
+#     resource_group_name = "my-company-rg-dev"
+#     location            = "eastus"
+#     sku                 = "Basic"
+#
+#     tags = { Purpose = "dev-images" }
+#   }
+# }

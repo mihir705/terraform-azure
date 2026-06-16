@@ -1,0 +1,21 @@
+# Storage Share module — terraform.tfvars example
+
+storage_shares = {
+  app-data = {
+    resource_group_name  = "my-company-rg-prod"
+    location             = "eastus"
+    storage_account_name = "mycompanyfilesprod"
+    name                 = "app-data"
+    quota_gb             = 512
+    access_tier          = "TransactionOptimized"
+
+    directories = {
+      uploads = "uploads"
+      logs    = "logs"
+    }
+
+    tags = {
+      Purpose = "shared-app-data"
+    }
+  }
+}

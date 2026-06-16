@@ -1,0 +1,46 @@
+# RBAC Role module — terraform.tfvars example
+
+rbac_roles = {
+  app-identity = {
+    name               = "app-identity-prod"
+    resource_group_key = "app"
+    identity_type      = "user_assigned"
+
+    role_assignments = {
+      rg-contributor = {
+        scope                = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-mycompany-app-prod"
+        role_definition_name = "Contributor"
+      }
+    }
+
+    tags = {
+      Purpose = "app-identity"
+    }
+  }
+}
+
+# Custom role definition (mirrors iam-policy)
+# rbac_roles = {
+#   custom-reader = {
+#     name               = "custom-reader-prod"
+#     resource_group_key = "app"
+#     identity_type      = "existing_principal"
+#     existing_principal_id = "00000000-0000-0000-0000-000000000000"
+#
+#     custom_role_definitions = {
+#       blob-reader = {
+#         scope = "/subscriptions/00000000-0000-0000-0000-000000000000"
+#         permissions = {
+#           actions = ["Microsoft.Storage/storageAccounts/read"]
+#         }
+#       }
+#     }
+#
+#     role_assignments = {
+#       custom = {
+#         scope                      = "/subscriptions/00000000-0000-0000-0000-000000000000"
+#         custom_role_definition_key = "blob-reader"
+#       }
+#     }
+#   }
+# }

@@ -1,0 +1,117 @@
+# VNet module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/vnet/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   azure_location = "eastus"
+#   default_tags   = { Environment = "prod", ManagedBy = "terraform" }
+#
+# Creates: VNet, 2 public + 2 private subnets, route tables,
+#          NAT gateway, public/private subnet NSGs.
+
+# ---------------------------------------------------------------------------
+# Standard — 2 public + 2 private subnets, single NAT gateway
+# ---------------------------------------------------------------------------
+
+vnets = {
+  main = {
+    name               = "my-company-prod"
+    resource_group_key = "main"
+    address_space      = ["10.0.0.0/16"]
+
+    public_subnets = {
+      az-a = {
+        availability_zone = "1"
+        address_prefix    = "10.0.1.0/24"
+      }
+      az-b = {
+        availability_zone = "2"
+        address_prefix    = "10.0.2.0/24"
+      }
+    }
+
+    private_subnets = {
+      az-a = {
+        availability_zone = "1"
+        address_prefix    = "10.0.11.0/24"
+      }
+      az-b = {
+        availability_zone = "2"
+        address_prefix    = "10.0.12.0/24"
+      }
+    }
+
+    tags = {
+      Purpose = "main-network"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# High availability — NAT gateway per zone (higher cost)
+# ---------------------------------------------------------------------------
+# vnets = {
+#   main = {
+#     name                   = "my-company-prod"
+#     resource_group_key     = "main"
+#     address_space          = ["10.0.0.0/16"]
+#     single_nat_gateway     = false
+#     one_nat_gateway_per_az = true
+#
+#     public_subnets = {
+#       az-a = { availability_zone = "1", address_prefix = "10.0.1.0/24" }
+#       az-b = { availability_zone = "2", address_prefix = "10.0.2.0/24" }
+#     }
+#
+#     private_subnets = {
+#       az-a = { availability_zone = "1", address_prefix = "10.0.11.0/24" }
+#       az-b = { availability_zone = "2", address_prefix = "10.0.12.0/24" }
+#     }
+#
+#     tags = { Purpose = "main-network" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Private only egress — no NAT (no internet from private subnets)
+# ---------------------------------------------------------------------------
+# vnets = {
+#   isolated = {
+#     name               = "my-company-isolated-prod"
+#     resource_group_key = "main"
+#     address_space      = ["10.1.0.0/16"]
+#     enable_nat_gateway = false
+#
+#     public_subnets = {
+#       az-a = { availability_zone = "1", address_prefix = "10.1.1.0/24" }
+#       az-b = { availability_zone = "2", address_prefix = "10.1.2.0/24" }
+#     }
+#
+#     private_subnets = {
+#       az-a = { availability_zone = "1", address_prefix = "10.1.11.0/24" }
+#       az-b = { availability_zone = "2", address_prefix = "10.1.12.0/24" }
+#     }
+#
+#     tags = { Purpose = "isolated-network" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Use VNet subnets with Function App (reference outputs in function_apps)
+# ---------------------------------------------------------------------------
+# function_apps = {
+#   vnet-worker = {
+#     name                = "my-company-vnet-worker-prod"
+#     resource_group_key  = "main"
+#     storage_account_key = "function-artifacts"
+#     package_source_dir  = "function-src/vnet-worker"
+#
+#     vnet_config = {
+#       subnet_ids              = ["subnet-xxx", "subnet-yyy"]  # private subnet IDs from terraform output
+#       network_security_group_ids = ["nsg-zzz"]
+#     }
+#
+#     tags = { Purpose = "vnet-worker" }
+#   }
+# }

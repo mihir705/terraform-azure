@@ -1,0 +1,106 @@
+# AKS module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/aks/README.md
+
+# ---------------------------------------------------------------------------
+# Production cluster with Azure CNI and autoscaling
+# ---------------------------------------------------------------------------
+
+aks_clusters = {
+  platform = {
+    name                = "my-company-aks-prod"
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    dns_prefix          = "mycompanyprod"
+    vnet_key            = "main"
+    subnet_keys         = ["aks-a", "aks-b"]
+
+    network_plugin = "azure"
+    network_policy = "azure"
+
+    default_node_pool = {
+      vm_size             = "Standard_D2s_v3"
+      enable_auto_scaling = true
+      min_count           = 2
+      max_count           = 5
+      os_disk_size_gb     = 128
+    }
+
+    additional_node_pools = {
+      workloads = {
+        vm_size             = "Standard_D4s_v3"
+        enable_auto_scaling = true
+        min_count           = 1
+        max_count           = 10
+        node_labels = {
+          workload = "general"
+        }
+      }
+    }
+
+    azure_rbac_enabled     = true
+    admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"]
+
+    tags = {
+      Purpose = "platform"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Private cluster with user-defined routing
+# ---------------------------------------------------------------------------
+# aks_clusters = {
+#   private = {
+#     name                = "my-company-aks-private-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     dns_prefix          = "mycompanyprivate"
+#     vnet_key            = "main"
+#     subnet_keys         = ["aks-a", "aks-b"]
+#
+#     private_cluster_enabled = true
+#     outbound_type           = "userDefinedRouting"
+#
+#     default_node_pool = {
+#       vm_size   = "Standard_D2s_v3"
+#       node_count = 3
+#     }
+#
+#     tags = { Purpose = "private-platform" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Spot node pool for batch workloads
+# ---------------------------------------------------------------------------
+# aks_clusters = {
+#   batch = {
+#     name                = "my-company-aks-batch-prod"
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     dns_prefix          = "mycompanybatch"
+#     subnet_ids          = ["/subscriptions/.../subnets/aks"]
+#
+#     default_node_pool = {
+#       vm_size    = "Standard_D2s_v3"
+#       node_count = 2
+#     }
+#
+#     additional_node_pools = {
+#       spot = {
+#         vm_size         = "Standard_D4s_v3"
+#         priority        = "Spot"
+#         eviction_policy = "Delete"
+#         node_count      = 0
+#         max_count       = 20
+#         enable_auto_scaling = true
+#         min_count       = 0
+#         node_taints     = ["kubernetes.azure.com/scalesetpriority=spot:NoSchedule"]
+#       }
+#     }
+#
+#     tags = { Purpose = "batch" }
+#   }
+# }

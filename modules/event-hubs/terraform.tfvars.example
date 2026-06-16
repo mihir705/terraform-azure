@@ -1,0 +1,23 @@
+# Event Hubs module — terraform.tfvars example
+
+event_hubs_namespaces = {
+  app-events = {
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    namespace_name      = "my-company-events-prod"
+    sku                 = "Standard"
+    capacity            = 1
+    event_hub_name      = "app-events"
+    partition_count     = 4
+    message_retention   = 7
+
+    consumer_groups = {
+      analytics = {}
+      processor = {}
+    }
+
+    tags = {
+      Purpose = "app-events"
+    }
+  }
+}

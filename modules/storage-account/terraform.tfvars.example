@@ -1,0 +1,130 @@
+# Storage Account module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/storage-account/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   location     = "eastus"
+#   default_tags = { Environment = "prod", ManagedBy = "terraform" }
+
+# ---------------------------------------------------------------------------
+# Basic — application data storage with containers
+# ---------------------------------------------------------------------------
+
+storage_accounts = {
+  app-data = {
+    resource_group_name  = "rg-mycompany-app-prod"
+    location             = "eastus"
+    storage_account_name = "stmycompanyappprod"
+    versioning_enabled   = true
+
+    containers = {
+      uploads = {
+        access_type = "private"
+      }
+      exports = {
+        access_type = "private"
+      }
+    }
+
+    tags = {
+      Purpose = "application-data"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Network-restricted storage account
+# ---------------------------------------------------------------------------
+# storage_accounts = {
+#   secure-data = {
+#     resource_group_name  = "rg-mycompany-app-prod"
+#     location             = "eastus"
+#     storage_account_name = "stmycompanysecureprod"
+#     versioning_enabled   = true
+#
+#     network_rules = {
+#       default_action = "Deny"
+#       bypass         = ["AzureServices"]
+#       ip_rules       = ["203.0.113.10"]
+#     }
+#
+#     tags = {
+#       Purpose = "secure-data"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Customer-managed key encryption
+# ---------------------------------------------------------------------------
+# storage_accounts = {
+#   encrypted-data = {
+#     resource_group_name  = "rg-mycompany-app-prod"
+#     location             = "eastus"
+#     storage_account_name = "stmycompanyencprod"
+#     versioning_enabled   = true
+#
+#     customer_managed_key = {
+#       key_vault_key_id          = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-mycompany-app-prod/providers/Microsoft.KeyVault/vaults/kv-mycompany-prod/keys/app-storage"
+#       user_assigned_identity_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-mycompany-app-prod/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-storage-cmk"
+#     }
+#
+#     tags = {
+#       Purpose = "encrypted-data"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Lifecycle rules
+# ---------------------------------------------------------------------------
+# storage_accounts = {
+#   logs = {
+#     resource_group_name  = "rg-mycompany-logs-prod"
+#     location             = "eastus"
+#     storage_account_name = "stmycompanylogsprod"
+#     versioning_enabled   = true
+#
+#     lifecycle_rules = [
+#       {
+#         name    = "expire-old-logs"
+#         enabled = true
+#         filter = {
+#           prefix_match = ["logs/"]
+#         }
+#         actions = {
+#           base_blob = {
+#             delete_after_days = 90
+#           }
+#         }
+#       },
+#       {
+#         name    = "archive-old-data"
+#         enabled = true
+#         filter = {
+#           prefix_match = ["archive/"]
+#         }
+#         actions = {
+#           base_blob = {
+#             tier_to_cool_after_days    = 30
+#             tier_to_archive_after_days = 90
+#           }
+#         }
+#       },
+#       {
+#         name    = "cleanup-old-versions"
+#         enabled = true
+#         actions = {
+#           version = {
+#             delete_after_days = 30
+#           }
+#         }
+#       }
+#     ]
+#
+#     tags = {
+#       Purpose = "logs"
+#     }
+#   }
+# }

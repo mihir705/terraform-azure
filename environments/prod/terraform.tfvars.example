@@ -1,0 +1,101 @@
+# Copy this file to terraform.tfvars and update values for your environment.
+# cp terraform.tfvars.example terraform.tfvars
+#
+# Module-specific examples (copy blocks from these into this file):
+#   modules/resource-group/terraform.tfvars.example
+#   modules/storage-account/terraform.tfvars.example
+#   modules/key-vault/terraform.tfvars.example
+#   modules/key-vault-secret/terraform.tfvars.example
+#   modules/key-vault-key/terraform.tfvars.example
+#   modules/vnet/terraform.tfvars.example
+#   modules/nsg/terraform.tfvars.example
+#   modules/load-balancer/terraform.tfvars.example
+#   modules/application-gateway/terraform.tfvars.example
+#   modules/function-app/terraform.tfvars.example
+#   modules/cdn/terraform.tfvars.example
+#   modules/aks/terraform.tfvars.example
+#
+# Omit any block you do not need. No empty {} required.
+
+azure_location         = "eastus"
+azure_replica_location = "westus"
+
+default_tags = {
+  Environment = "prod"
+  ManagedBy   = "terraform"
+  Project     = "terraform-azure"
+}
+
+# --- Resource Group (see modules/resource-group/terraform.tfvars.example) ---
+resource_groups = {
+  app = {
+    resource_group_name = "rg-mycompany-app-prod"
+    location            = "eastus"
+
+    tags = {
+      Purpose = "application"
+    }
+  }
+}
+
+# --- Storage Account (see modules/storage-account/terraform.tfvars.example) ---
+storage_accounts = {
+  app-data = {
+    resource_group_key   = "app"
+    storage_account_name = "mycompanyappdata01"
+    versioning_enabled   = true
+
+    containers = {
+      uploads = {}
+    }
+
+    tags = {
+      Purpose = "application-data"
+    }
+  }
+}
+
+# --- Key Vault (see modules/key-vault/terraform.tfvars.example) ---
+key_vaults = {
+  app = {
+    resource_group_key = "app"
+    name               = "mycompany-kv-prod"
+
+    tags = {
+      Purpose = "secrets-and-keys"
+    }
+  }
+}
+
+# --- Key Vault Secret (see modules/key-vault-secret/terraform.tfvars.example) ---
+# key_vault_secrets = {
+#   app-config = {
+#     resource_group_key = "app"
+#     name               = "app-config"
+#     vault_key          = "app"
+#     generate_random_password = {
+#       length = 32
+#     }
+#   }
+# }
+
+# --- VNet (see modules/vnet/terraform.tfvars.example) ---
+# vnets = {
+#   main = {
+#     name               = "my-company-prod"
+#     resource_group_key = "app"
+#     address_space      = ["10.0.0.0/16"]
+#
+#     public_subnets = {
+#       az-a = { availability_zone = "1", address_prefix = "10.0.1.0/24" }
+#       az-b = { availability_zone = "2", address_prefix = "10.0.2.0/24" }
+#     }
+#
+#     private_subnets = {
+#       az-a = { availability_zone = "1", address_prefix = "10.0.11.0/24" }
+#       az-b = { availability_zone = "2", address_prefix = "10.0.12.0/24" }
+#     }
+#
+#     tags = { Purpose = "main-network" }
+#   }
+# }

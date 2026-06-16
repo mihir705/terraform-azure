@@ -1,0 +1,83 @@
+# API Management module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/api-management/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   azure_location = "eastus"
+#   default_tags   = { Environment = "prod", ManagedBy = "terraform" }
+
+# ---------------------------------------------------------------------------
+# REST API with operations and product
+# ---------------------------------------------------------------------------
+
+api_management_services = {
+  public-api = {
+    resource_group_name = "my-company-rg-prod"
+    location            = "eastus"
+    name                = "my-company-apim-prod"
+    publisher_name      = "My Company"
+    publisher_email     = "platform@example.com"
+    sku_name            = "Developer_1"
+
+    apis = {
+      orders = {
+        display_name = "Orders API"
+        path         = "orders"
+        service_url  = "https://api.example.com/orders"
+      }
+    }
+
+    operations = {
+      list-orders = {
+        api_key      = "orders"
+        operation_id = "list-orders"
+        display_name = "List orders"
+        method       = "GET"
+        url_template = "/"
+      }
+    }
+
+    products = {
+      public = {
+        display_name = "Public"
+        api_keys     = ["orders"]
+      }
+    }
+
+    backends = {
+      orders = {
+        protocol = "http"
+        url      = "https://api.example.com/orders"
+      }
+    }
+
+    tags = {
+      Purpose = "public-api"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# OpenAPI import
+# ---------------------------------------------------------------------------
+# api_management_services = {
+#   public-api = {
+#     resource_group_name = "my-company-rg-prod"
+#     location            = "eastus"
+#     name                = "my-company-apim-prod"
+#     publisher_name      = "My Company"
+#     publisher_email     = "platform@example.com"
+#
+#     apis = {
+#       orders = {
+#         display_name = "Orders API"
+#         path         = "orders"
+#         import = {
+#           content_format = "openapi+json"
+#           content_value  = file("${path.module}/openapi/orders.json")
+#         }
+#       }
+#     }
+#   }
+# }

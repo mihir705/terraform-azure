@@ -1,0 +1,76 @@
+# Key Vault module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/key-vault/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   location     = "eastus"
+#   default_tags = { Environment = "prod", ManagedBy = "terraform" }
+
+# ---------------------------------------------------------------------------
+# Basic — RBAC-enabled application vault
+# ---------------------------------------------------------------------------
+
+key_vaults = {
+  app = {
+    resource_group_name = "rg-mycompany-app-prod"
+    location            = "eastus"
+    name                = "kv-mycompany-app-prod"
+
+    enable_rbac_authorization = true
+    purge_protection_enabled  = true
+
+    network_acls = {
+      default_action = "Deny"
+      bypass         = "AzureServices"
+      ip_rules       = ["203.0.113.10"]
+    }
+
+    tags = {
+      Purpose = "application-secrets"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Access policy mode (RBAC disabled)
+# ---------------------------------------------------------------------------
+# data "azurerm_client_config" "current" {}
+#
+# key_vaults = {
+#   legacy = {
+#     resource_group_name = "rg-mycompany-app-prod"
+#     location            = "eastus"
+#     name                = "kv-mycompany-legacy-prod"
+#
+#     enable_rbac_authorization = false
+#
+#     access_policies = [
+#       {
+#         object_id = data.azurerm_client_config.current.object_id
+#         secret_permissions = ["Get", "List", "Set", "Delete"]
+#         key_permissions    = ["Get", "List", "Create", "Delete"]
+#       }
+#     ]
+#
+#     tags = {
+#       Purpose = "legacy-vault"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Premium SKU for HSM-backed keys
+# ---------------------------------------------------------------------------
+# key_vaults = {
+#   hsm = {
+#     resource_group_name = "rg-mycompany-security-prod"
+#     location            = "eastus"
+#     name                = "kv-mycompany-hsm-prod"
+#     sku_name            = "premium"
+#
+#     tags = {
+#       Purpose = "hsm-keys"
+#     }
+#   }
+# }
