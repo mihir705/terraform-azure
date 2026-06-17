@@ -1,8 +1,8 @@
 locals {
   managed_secret = coalesce(
-    try(azurerm_key_vault_secret.this[0], null),
-    try(azurerm_key_vault_secret.this_external[0], null),
-    azurerm_key_vault_secret.shell[0]
+    try(azurerm_key_vault_secret.secret[0], null),
+    try(azurerm_key_vault_secret.secret_external[0], null),
+    try(azurerm_key_vault_secret.shell[0], null)
   )
 }
 

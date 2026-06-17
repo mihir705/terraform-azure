@@ -24,8 +24,8 @@ output "environment" {
     } : {},
     length(var.key_vault_secrets) > 0 ? {
       key_vault_secrets = {
-        ids   = { for name, secret in module.key_vault_secret : name => secret.secret_id }
-        names = { for name, secret in module.key_vault_secret : name => secret.secret_name }
+        ids   = { for name, secret in module.key_vault_secret : name => nonsensitive(secret.secret_id) }
+        names = { for name, secret in module.key_vault_secret : name => nonsensitive(secret.secret_name) }
       }
     } : {},
     length(var.key_vault_keys) > 0 ? {
@@ -148,12 +148,6 @@ output "environment" {
         share_urls  = { for name, share in module.storage_share : name => share.share_url }
       }
     } : {},
-    length(var.aadb2c_directories) > 0 ? {
-      aadb2c = {
-        tenant_ids   = { for name, b2c in module.aadb2c : name => b2c.tenant_id }
-        domain_names = { for name, b2c in module.aadb2c : name => b2c.domain_name }
-      }
-    } : {},
     length(var.event_hubs_namespaces) > 0 ? {
       event_hubs = {
         namespace_ids           = { for name, eh in module.event_hubs : name => eh.namespace_id }
@@ -162,4 +156,16 @@ output "environment" {
       }
     } : {},
   )
+}
+
+output "virtual_machine_admin_passwords" {
+  description = "Generated VM admin passwords keyed by logical name."
+  value       = { for name, vm in module.virtual_machine : name => vm.admin_password }
+  sensitive   = true
+}
+
+output "postgresql_admin_passwords" {
+  description = "Generated PostgreSQL admin passwords keyed by logical name."
+  value       = { for name, db in module.postgresql_flexible : name => db.administrator_password }
+  sensitive   = true
 }

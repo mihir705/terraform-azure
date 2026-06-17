@@ -53,7 +53,13 @@ variable "key_vaults" {
     name                     = string
     sku_name                 = optional(string, "standard")
     purge_protection_enabled = optional(bool, true)
-    tags                     = optional(map(string), {})
+    network_acls = optional(object({
+      bypass                     = optional(string, "AzureServices")
+      default_action             = optional(string, "Deny")
+      ip_rules                   = optional(list(string), [])
+      virtual_network_subnet_ids = optional(list(string), [])
+    }))
+    tags = optional(map(string), {})
   }))
   default = {}
 }
@@ -210,12 +216,6 @@ variable "container_apps" {
 
 variable "storage_shares" {
   description = "Azure Files shares to create."
-  type        = map(any)
-  default     = {}
-}
-
-variable "aadb2c_directories" {
-  description = "Azure AD B2C directories to create."
   type        = map(any)
   default     = {}
 }

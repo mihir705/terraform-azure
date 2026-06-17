@@ -20,6 +20,20 @@ locals {
       coalesce(try(target.ip_address, null), try(target.fqdn, null))
     ]
   }
+
+  # optional(bool, false) on target_groups makes an unset flag read as false, not null.
+  probe_pick_host = {
+    for tg_key, tg in var.target_groups :
+    tg_key => try(tg.host_name, null) == null
+    if try(tg.health_check_enabled, true)
+  }
+
+  backend_pick_host_from_address = {
+    for tg_key, tg in var.target_groups :
+    tg_key => try(tg.host_name, null) == null && length([
+      for target in try(tg.targets, []) : target if try(target.ip_address, null) != null
+    ]) > 0
+  }
 }
 
 check "target_groups_required" {
@@ -91,6 +105,25 @@ resource "azurerm_application_gateway" "gateway" {
     }
   }
 
+  dynamic "ssl_policy" {
+    for_each = var.ssl_policy_type == "Predefined" ? [1] : []
+
+    content {
+      policy_type = "Predefined"
+      policy_name = var.ssl_policy_name
+    }
+  }
+
+  dynamic "ssl_policy" {
+    for_each = var.ssl_policy_type == "Custom" ? [1] : []
+
+    content {
+      policy_type          = "Custom"
+      min_protocol_version = var.ssl_policy_min_protocol_version
+      cipher_suites        = var.ssl_policy_cipher_suites
+    }
+  }
+
   gateway_ip_configuration {
     name      = "gateway-ip-config"
     subnet_id = var.subnet_id
@@ -134,13 +167,16 @@ resource "azurerm_application_gateway" "gateway" {
 
     content {
       name                                      = "${probe.key}-probe"
-      protocol                                  = lower(try(probe.value.health_check_protocol, "Http"))
+      protocol                                  = contains(["HTTPS", "Https"], try(probe.value.health_check_protocol, "Http")) ? "Https" : "Http"
       path                                      = try(probe.value.health_check_path, "/")
       interval                                  = try(probe.value.health_check_interval, 30)
       timeout                                   = try(probe.value.health_check_timeout, 30)
       unhealthy_threshold                       = try(probe.value.health_check_unhealthy_threshold, 3)
-      pick_host_name_from_backend_http_settings = try(probe.value.pick_host_name_from_backend_http_settings, false)
-      host                                      = try(probe.value.host_name, null)
+      pick_host_name_from_backend_http_settings = local.probe_pick_host[probe.key] ? coalesce(
+        try(probe.value.pick_host_name_from_backend_http_settings, null),
+        true
+      ) : false
+      host = local.probe_pick_host[probe.key] ? null : probe.value.host_name
       port                                      = try(probe.value.health_check_port, probe.value.port)
       match {
         status_code = [try(probe.value.health_check_matcher, "200-399")]
@@ -158,8 +194,11 @@ resource "azurerm_application_gateway" "gateway" {
       protocol                            = backend_http_settings.value.protocol
       request_timeout                     = 30
       probe_name                          = try(backend_http_settings.value.health_check_enabled, true) ? "${backend_http_settings.key}-probe" : null
-      pick_host_name_from_backend_address = try(backend_http_settings.value.pick_host_name_from_backend_http_settings, false)
-      host_name                           = try(backend_http_settings.value.host_name, null)
+      pick_host_name_from_backend_address = local.backend_pick_host_from_address[backend_http_settings.key] ? coalesce(
+        try(backend_http_settings.value.pick_host_name_from_backend_address, null),
+        true
+      ) : false
+      host_name = try(backend_http_settings.value.host_name, null)
 
       dynamic "connection_draining" {
         for_each = try(backend_http_settings.value.connection_draining_enabled, false) ? [1] : []

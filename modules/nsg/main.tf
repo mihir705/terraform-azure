@@ -14,10 +14,14 @@ locals {
   }
 
   default_egress_rule = {
-    name                       = "allow-all-outbound-ipv4"
-    description                = "All outbound IPv4"
-    protocol                   = "*"
-    destination_address_prefix = "*"
+    name                                       = "allow-all-outbound-ipv4"
+    description                                = "All outbound IPv4"
+    protocol                                   = "*"
+    destination_address_prefix                 = "*"
+    destination_address_prefixes               = []
+    source_application_security_group_ids      = []
+    destination_application_security_group_ids = []
+    self_reference                             = false
   }
 
   egress_rules = concat(

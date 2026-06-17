@@ -19,6 +19,8 @@ Terraform module to create an Azure Event Hubs namespace with a Kafka-compatible
 
 ## Usage
 
+See [terraform.tfvars.example](./terraform.tfvars.example) for copy-paste examples.
+
 ```hcl
 event_hubs_namespaces = {
   app-events = {

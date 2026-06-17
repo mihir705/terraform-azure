@@ -127,14 +127,13 @@ resource "azurerm_role_definition" "custom" {
 resource "azurerm_role_assignment" "assignment" {
   for_each = var.role_assignments
 
-  scope = each.value.scope
+  scope              = each.value.scope
   role_definition_id = coalesce(
     try(each.value.role_definition_id, null),
     try(each.value.custom_role_definition_key, null) != null ? local.custom_role_definition_ids[each.value.custom_role_definition_key] : null,
     try(data.azurerm_role_definition.builtin[each.key].id, null)
   )
-  role_definition_name = try(each.value.role_definition_name, null)
-  principal_id         = local.principal_id
+  principal_id = local.principal_id
   description          = try(each.value.description, null)
 }
 

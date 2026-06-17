@@ -9,12 +9,14 @@
 
 aks_clusters = {
   platform = {
-    name                = "my-company-aks-prod"
-    resource_group_name = "my-company-rg-prod"
-    location            = "eastus"
-    dns_prefix          = "mycompanyprod"
-    vnet_key            = "main"
-    subnet_keys         = ["aks-a", "aks-b"]
+    name               = "my-company-aks-prod"
+    resource_group_key = "app"
+    dns_prefix         = "mycompanyprod"
+    vnet_key           = "main"
+
+    # Must not overlap the VNet address space (e.g. 10.0.0.0/16).
+    service_cidr   = "10.1.0.0/16"
+    dns_service_ip = "10.1.0.10"
 
     network_plugin = "azure"
     network_policy = "azure"
@@ -58,7 +60,6 @@ aks_clusters = {
 #     location            = "eastus"
 #     dns_prefix          = "mycompanyprivate"
 #     vnet_key            = "main"
-#     subnet_keys         = ["aks-a", "aks-b"]
 #
 #     private_cluster_enabled = true
 #     outbound_type           = "userDefinedRouting"

@@ -3,18 +3,30 @@
 #
 # Module-specific examples (copy blocks from these into this file):
 #   modules/resource-group/terraform.tfvars.example
-#   modules/storage-account/terraform.tfvars.example
-#   modules/key-vault/terraform.tfvars.example
-#   modules/key-vault-secret/terraform.tfvars.example
-#   modules/key-vault-key/terraform.tfvars.example
 #   modules/vnet/terraform.tfvars.example
 #   modules/nsg/terraform.tfvars.example
 #   modules/load-balancer/terraform.tfvars.example
 #   modules/application-gateway/terraform.tfvars.example
+#   modules/storage-account/terraform.tfvars.example
+#   modules/key-vault/terraform.tfvars.example
+#   modules/key-vault-secret/terraform.tfvars.example
+#   modules/key-vault-key/terraform.tfvars.example
+#   modules/container-registry/terraform.tfvars.example
+#   modules/rbac-role/terraform.tfvars.example
+#   modules/service-bus-topic/terraform.tfvars.example
+#   modules/service-bus-queue/terraform.tfvars.example
+#   modules/event-hubs/terraform.tfvars.example
 #   modules/function-app/terraform.tfvars.example
 #   modules/cdn/terraform.tfvars.example
+#   modules/virtual-machine/terraform.tfvars.example
+#   modules/postgresql-flexible/terraform.tfvars.example
+#   modules/api-management/terraform.tfvars.example
+#   modules/storage-queue/terraform.tfvars.example
+#   modules/storage-share/terraform.tfvars.example
+#   modules/container-apps/terraform.tfvars.example
 #   modules/aks/terraform.tfvars.example
 #
+# Prefer resource_group_key over resource_group_name when using environments/prod.
 # Omit any block you do not need. No empty {} required.
 
 azure_location         = "eastus"
@@ -82,8 +94,8 @@ key_vaults = {
 # --- VNet (see modules/vnet/terraform.tfvars.example) ---
 # vnets = {
 #   main = {
-#     name               = "my-company-prod"
-#     resource_group_key = "app"
+#     name               = "vnet-mycompany-prod"
+#     resource_group_key = "network"
 #     address_space      = ["10.0.0.0/16"]
 #
 #     public_subnets = {

@@ -11,6 +11,17 @@ locals {
   origin_blob_host            = var.create_origin_storage_account ? azurerm_storage_account.origin[0].primary_blob_host : data.azurerm_storage_account.existing_origin[0].primary_blob_host
   origin_host_name            = coalesce(var.origin_host_name, local.origin_blob_host)
   origin_host_header          = coalesce(var.origin_host_header, local.origin_host_name)
+  origin_group_name           = "${var.endpoint_name}-origin-group"
+  route_name                  = "${var.endpoint_name}-route"
+  health_probe_path           = var.origin_path != "" ? var.origin_path : "/"
+  route_patterns              = var.origin_path != "" ? ["${var.origin_path}/*"] : ["/*"]
+  supported_protocols         = var.is_http_allowed && var.is_https_allowed ? ["Http", "Https"] : var.is_https_allowed ? ["Https"] : ["Http"]
+
+  query_string_caching_behavior = (
+    var.querystring_caching_behaviour == "UseQueryString" ? "UseQueryString" :
+    var.querystring_caching_behaviour == "BypassCaching" ? "IgnoreQueryString" :
+    "IgnoreQueryString"
+  )
 }
 
 check "origin_storage_account_name_required" {
@@ -56,55 +67,94 @@ resource "azurerm_storage_account" "origin" {
   tags = var.tags
 }
 
-resource "azurerm_cdn_profile" "profile" {
+resource "azurerm_cdn_frontdoor_profile" "profile" {
   name                = var.name
-  location            = var.location
   resource_group_name = var.resource_group_name
-  sku                 = var.sku_name
+  sku_name            = var.sku_name
 
   tags = merge(var.tags, {
     Name = var.name
   })
 }
 
-resource "azurerm_cdn_endpoint" "endpoint" {
-  name                = var.endpoint_name
-  profile_name        = azurerm_cdn_profile.profile.name
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  is_http_allowed  = var.is_http_allowed
-  is_https_allowed = var.is_https_allowed
-
-  origin_host_header            = local.origin_host_header
-  origin_path                   = var.origin_path != "" ? var.origin_path : null
-  querystring_caching_behaviour = var.querystring_caching_behaviour
-  optimization_type             = var.optimization_type
-
-  origin {
-    name      = "storage-origin"
-    host_name = local.origin_host_name
-  }
-
-  dynamic "geo_filter" {
-    for_each = var.geo_filter != null ? [var.geo_filter] : []
-
-    content {
-      relative_path = geo_filter.value.relative_path
-      action        = geo_filter.value.action
-      country_codes = geo_filter.value.country_codes
-    }
-  }
+resource "azurerm_cdn_frontdoor_endpoint" "endpoint" {
+  name                     = var.endpoint_name
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.profile.id
 
   tags = merge(var.tags, {
     Name = var.endpoint_name
   })
 }
 
-resource "azurerm_cdn_endpoint_custom_domain" "custom_domain" {
+resource "azurerm_cdn_frontdoor_origin_group" "origin_group" {
+  name                     = local.origin_group_name
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.profile.id
+  session_affinity_enabled = false
+
+  load_balancing {
+    sample_size                 = 4
+    successful_samples_required = 3
+  }
+
+  health_probe {
+    path                = local.health_probe_path
+    request_type        = "HEAD"
+    protocol            = "Https"
+    interval_in_seconds = 100
+  }
+}
+
+resource "azurerm_cdn_frontdoor_origin" "origin" {
+  name                          = "storage-origin"
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.origin_group.id
+  enabled                       = true
+
+  certificate_name_check_enabled = true
+  host_name                      = local.origin_host_name
+  origin_host_header             = local.origin_host_header
+  http_port                      = 80
+  https_port                     = 443
+  priority                       = 1
+  weight                         = 1000
+
+  dynamic "private_link" {
+    for_each = var.sku_name == "Premium_AzureFrontDoor" && var.enable_origin_private_link ? [1] : []
+
+    content {
+      request_message        = "Azure Front Door private link to storage blob origin"
+      target_type            = "blob"
+      location               = var.location
+      private_link_target_id = local.origin_storage_account_id
+    }
+  }
+}
+
+resource "azurerm_cdn_frontdoor_route" "route" {
+  name                          = local.route_name
+  cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.endpoint.id
+  cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.origin_group.id
+  cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.origin.id]
+
+  supported_protocols    = local.supported_protocols
+  patterns_to_match      = local.route_patterns
+  forwarding_protocol    = "HttpsOnly"
+  link_to_default_domain = true
+  https_redirect_enabled = var.is_https_allowed
+
+  cache {
+    query_string_caching_behavior = local.query_string_caching_behavior
+  }
+}
+
+resource "azurerm_cdn_frontdoor_custom_domain" "custom_domain" {
   for_each = var.custom_domains
 
-  name            = each.key
-  cdn_endpoint_id = azurerm_cdn_endpoint.endpoint.id
-  host_name       = each.value.host_name
+  name                     = replace(each.key, ".", "-")
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.profile.id
+  host_name                = each.value.host_name
+
+  tls {
+    certificate_type    = "ManagedCertificate"
+    minimum_tls_version = "TLS12"
+  }
 }

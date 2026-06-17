@@ -1,32 +1,32 @@
 output "storage_account_id" {
   description = "ID of the storage account."
-  value       = azurerm_storage_account.this.id
+  value       = azurerm_storage_account.account.id
 }
 
 output "storage_account_name" {
   description = "Name of the storage account."
-  value       = azurerm_storage_account.this.name
+  value       = azurerm_storage_account.account.name
 }
 
 output "primary_blob_endpoint" {
   description = "Primary blob endpoint URL."
-  value       = azurerm_storage_account.this.primary_blob_endpoint
+  value       = azurerm_storage_account.account.primary_blob_endpoint
 }
 
 output "primary_blob_host" {
   description = "Primary blob host name."
-  value       = azurerm_storage_account.this.primary_blob_host
+  value       = azurerm_storage_account.account.primary_blob_host
 }
 
 output "primary_access_key" {
   description = "Primary access key. Null when shared_access_key_enabled is false."
-  value       = var.shared_access_key_enabled ? azurerm_storage_account.this.primary_access_key : null
+  value       = var.shared_access_key_enabled ? azurerm_storage_account.account.primary_access_key : null
   sensitive   = true
 }
 
 output "container_names" {
   description = "Names of blob containers created by this module."
-  value       = [for container in azurerm_storage_container.this : container.name]
+  value       = [for container in azurerm_storage_container.container : container.name]
 }
 
 output "network_rules_enabled" {

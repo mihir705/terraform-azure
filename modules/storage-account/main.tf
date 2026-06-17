@@ -11,7 +11,7 @@ check "customer_key_requires_key_vault" {
   }
 }
 
-resource "azurerm_storage_account" "this" {
+resource "azurerm_storage_account" "account" {
   name                     = var.storage_account_name
   resource_group_name      = var.resource_group_name
   location                 = var.location
@@ -62,19 +62,19 @@ resource "azurerm_storage_account" "this" {
   tags = var.tags
 }
 
-resource "azurerm_storage_container" "this" {
+resource "azurerm_storage_container" "container" {
   for_each = var.containers
 
   name                  = each.key
-  storage_account_name  = azurerm_storage_account.this.name
+  storage_account_name  = azurerm_storage_account.account.name
   container_access_type = try(each.value.access_type, "private")
   metadata              = try(each.value.metadata, null)
 }
 
-resource "azurerm_storage_account_network_rules" "this" {
+resource "azurerm_storage_account_network_rules" "network_rules" {
   count = local.create_network_rules ? 1 : 0
 
-  storage_account_id = azurerm_storage_account.this.id
+  storage_account_id = azurerm_storage_account.account.id
 
   default_action             = var.network_rules.default_action
   bypass                     = var.network_rules.bypass
@@ -91,10 +91,10 @@ resource "azurerm_storage_account_network_rules" "this" {
   }
 }
 
-resource "azurerm_storage_management_policy" "this" {
+resource "azurerm_storage_management_policy" "management_policy" {
   count = local.create_lifecycle ? 1 : 0
 
-  storage_account_id = azurerm_storage_account.this.id
+  storage_account_id = azurerm_storage_account.account.id
 
   dynamic "rule" {
     for_each = var.lifecycle_rules

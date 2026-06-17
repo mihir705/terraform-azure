@@ -19,6 +19,8 @@ Terraform module to create an Azure Files share with optional storage account cr
 
 ## Usage
 
+See [terraform.tfvars.example](./terraform.tfvars.example) for copy-paste examples.
+
 ```hcl
 storage_shares = {
   app-data = {

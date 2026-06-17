@@ -12,9 +12,8 @@ locals {
     random_password.admin[0].result
   )
 
-  private_dns_zone_id = coalesce(
-    var.private_dns_zone_id,
-    try(azurerm_private_dns_zone.this[0].id, null)
+  private_dns_zone_id = var.private_dns_zone_id != null ? var.private_dns_zone_id : (
+    length(azurerm_private_dns_zone.private_dns_zone) > 0 ? azurerm_private_dns_zone.private_dns_zone[0].id : null
   )
 }
 
@@ -39,7 +38,7 @@ check "vnet_integration_recommended" {
   }
 }
 
-resource "azurerm_private_dns_zone" "this" {
+resource "azurerm_private_dns_zone" "private_dns_zone" {
   count = var.create_private_dns_zone && var.private_dns_zone_id == null ? 1 : 0
 
   name                = var.private_dns_zone_name
@@ -50,7 +49,7 @@ resource "azurerm_private_dns_zone" "this" {
   })
 }
 
-resource "azurerm_postgresql_flexible_server" "this" {
+resource "azurerm_postgresql_flexible_server" "server" {
   name                          = var.name
   resource_group_name           = var.resource_group_name
   location                      = var.location
@@ -102,20 +101,20 @@ resource "azurerm_postgresql_flexible_server" "this" {
   }
 }
 
-resource "azurerm_postgresql_flexible_server_database" "this" {
+resource "azurerm_postgresql_flexible_server_database" "database" {
   for_each = var.databases
 
   name      = each.key
-  server_id = azurerm_postgresql_flexible_server.this.id
+  server_id = azurerm_postgresql_flexible_server.server.id
   charset   = each.value.charset
   collation = each.value.collation
 }
 
-resource "azurerm_postgresql_flexible_server_configuration" "this" {
+resource "azurerm_postgresql_flexible_server_configuration" "server_configuration" {
   for_each = var.configurations
 
   name      = each.key
-  server_id = azurerm_postgresql_flexible_server.this.id
+  server_id = azurerm_postgresql_flexible_server.server.id
   value     = each.value.value
 }
 
@@ -126,12 +125,12 @@ check "virtual_network_id_for_dns_link" {
   }
 }
 
-resource "azurerm_private_dns_zone_virtual_network_link" "this" {
+resource "azurerm_private_dns_zone_virtual_network_link" "private_dns_vnet_link" {
   count = var.create_private_dns_zone && var.private_dns_zone_id == null && var.virtual_network_id != null ? 1 : 0
 
   name                  = "${var.name}-dns-link"
   resource_group_name   = var.resource_group_name
-  private_dns_zone_name = azurerm_private_dns_zone.this[0].name
+  private_dns_zone_name = azurerm_private_dns_zone.private_dns_zone[0].name
   virtual_network_id    = var.virtual_network_id
 
   tags = var.tags

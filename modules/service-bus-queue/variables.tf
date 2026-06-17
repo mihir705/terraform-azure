@@ -32,6 +32,12 @@ variable "existing_namespace_resource_group_name" {
   default     = null
 }
 
+variable "existing_namespace_id" {
+  description = "Existing Service Bus namespace ID. Use when the namespace is managed in the same Terraform stack."
+  type        = string
+  default     = null
+}
+
 variable "namespace_sku" {
   description = "Service Bus namespace SKU: Basic, Standard, or Premium."
   type        = string

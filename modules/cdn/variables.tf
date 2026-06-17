@@ -19,14 +19,20 @@ variable "name" {
 }
 
 variable "sku_name" {
-  description = "CDN profile SKU: Standard_Akamai, Standard_Microsoft, Standard_Verizon, or Premium_Verizon."
+  description = "Front Door profile SKU. Classic Microsoft CDN (Standard_Microsoft) is retired for new profiles."
   type        = string
-  default     = "Standard_Microsoft"
+  default     = "Standard_AzureFrontDoor"
 
   validation {
-    condition     = contains(["Standard_Akamai", "Standard_Microsoft", "Standard_Verizon", "Premium_Verizon"], var.sku_name)
-    error_message = "sku_name must be Standard_Akamai, Standard_Microsoft, Standard_Verizon, or Premium_Verizon."
+    condition     = contains(["Standard_AzureFrontDoor", "Premium_AzureFrontDoor"], var.sku_name)
+    error_message = "sku_name must be Standard_AzureFrontDoor or Premium_AzureFrontDoor."
   }
+}
+
+variable "enable_origin_private_link" {
+  description = "Use a private link origin to storage (Premium_AzureFrontDoor only; required for private blob containers)."
+  type        = bool
+  default     = false
 }
 
 variable "endpoint_name" {
