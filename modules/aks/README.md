@@ -21,17 +21,18 @@ Terraform module to create an Azure Kubernetes Service (AKS) cluster with a defa
 
 See [terraform.tfvars.example](./terraform.tfvars.example) for copy-paste examples.
 
-### Private cluster with Azure CNI
+### Cluster with Azure CNI
 
 ```hcl
 aks_clusters = {
   platform = {
-    name                = "my-company-aks-prod"
-    resource_group_name = "my-company-rg-prod"
-    location            = "eastus"
-    dns_prefix          = "mycompanyprod"
-    vnet_key            = "main"
-    subnet_keys         = ["aks-a", "aks-b"]
+    name               = "my-company-aks-prod"
+    resource_group_key = "app"
+    dns_prefix         = "mycompanyprod"
+    vnet_key           = "main"
+
+    service_cidr   = "10.1.0.0/16"
+    dns_service_ip = "10.1.0.10"
 
     network_plugin = "azure"
     network_policy = "azure"
@@ -43,9 +44,6 @@ aks_clusters = {
       max_count           = 5
     }
 
-    azure_rbac_enabled = true
-    admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"]
-
     tags = { Purpose = "platform" }
   }
 }
@@ -55,7 +53,9 @@ aks_clusters = {
 
 | Field | Resolves from |
 |-------|----------------|
-| `vnet_key` + `subnet_keys` | AKS subnet IDs from VNet module (min 1) |
+| `resource_group_key` | Resource group module |
+| `vnet_key` | All private subnet IDs from VNet module (or set `subnet_ids` explicitly) |
+| `service_cidr` / `dns_service_ip` | Must not overlap the VNet address space |
 
 ## Inputs
 

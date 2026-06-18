@@ -35,12 +35,12 @@ output "storage_account_name" {
 
 output "application_insights_id" {
   description = "Application Insights ID when created or referenced."
-  value       = coalesce(var.application_insights_id, try(azurerm_application_insights.this[0].id, null))
+  value       = coalesce(var.application_insights_id, try(azurerm_application_insights.application_insights[0].id, null))
 }
 
 output "application_insights_instrumentation_key" {
   description = "Application Insights instrumentation key when created by the module."
-  value       = try(azurerm_application_insights.this[0].instrumentation_key, null)
+  value       = try(azurerm_application_insights.application_insights[0].instrumentation_key, null)
   sensitive   = true
 }
 

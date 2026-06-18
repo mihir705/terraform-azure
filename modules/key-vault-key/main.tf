@@ -31,7 +31,7 @@ data "azurerm_key_vault" "vault" {
   resource_group_name = local.vault_resource_group_name
 }
 
-resource "azurerm_key_vault_key" "this" {
+resource "azurerm_key_vault_key" "key" {
   name         = var.name
   key_vault_id = local.key_vault_id
   key_type     = var.key_type

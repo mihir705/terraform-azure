@@ -80,6 +80,45 @@ variable "enable_http2" {
   default     = true
 }
 
+variable "ssl_policy_type" {
+  description = "Gateway SSL policy type. Use Predefined with ssl_policy_name for Azure-managed TLS policies."
+  type        = string
+  default     = "Predefined"
+
+  validation {
+    condition     = contains(["Predefined", "Custom"], var.ssl_policy_type)
+    error_message = "ssl_policy_type must be Predefined or Custom."
+  }
+}
+
+variable "ssl_policy_name" {
+  description = "Predefined SSL policy name. AppGwSslPolicy20220101 is required for new deployments (20150501 is deprecated)."
+  type        = string
+  default     = "AppGwSslPolicy20220101"
+
+  validation {
+    condition = contains([
+      "AppGwSslPolicy20170401",
+      "AppGwSslPolicy20170401S",
+      "AppGwSslPolicy20220101",
+      "AppGwSslPolicy20220101S",
+    ], var.ssl_policy_name)
+    error_message = "ssl_policy_name must be a supported AppGwSslPolicy predefined policy."
+  }
+}
+
+variable "ssl_policy_min_protocol_version" {
+  description = "Minimum TLS version when ssl_policy_type is Custom."
+  type        = string
+  default     = "TLSv1_2"
+}
+
+variable "ssl_policy_cipher_suites" {
+  description = "Cipher suites when ssl_policy_type is Custom."
+  type        = list(string)
+  default     = []
+}
+
 variable "enable_deletion_protection" {
   description = "Enable deletion protection on the Application Gateway."
   type        = bool
@@ -108,7 +147,8 @@ variable "target_groups" {
     health_check_timeout                      = optional(number, 30)
     health_check_unhealthy_threshold          = optional(number, 3)
     health_check_matcher                      = optional(string, "200-399")
-    pick_host_name_from_backend_http_settings = optional(bool, false)
+    pick_host_name_from_backend_http_settings = optional(bool)
+    pick_host_name_from_backend_address       = optional(bool)
     host_name                                 = optional(string)
     targets = optional(list(object({
       ip_address = optional(string)

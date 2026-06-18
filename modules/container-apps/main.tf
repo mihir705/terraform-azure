@@ -1,8 +1,7 @@
 locals {
   log_analytics_workspace_name = coalesce(var.log_analytics_workspace_name, "${var.name}-law")
-  log_analytics_workspace_id = coalesce(
-    var.log_analytics_workspace_id,
-    try(azurerm_log_analytics_workspace.this[0].id, null)
+  log_analytics_workspace_id = var.log_analytics_workspace_id != null ? var.log_analytics_workspace_id : (
+    length(azurerm_log_analytics_workspace.log_analytics) > 0 ? azurerm_log_analytics_workspace.log_analytics[0].id : null
   )
 }
 
@@ -35,7 +34,7 @@ check "key_vault_secret_identity" {
   }
 }
 
-resource "azurerm_log_analytics_workspace" "this" {
+resource "azurerm_log_analytics_workspace" "log_analytics" {
   count = var.create_log_analytics_workspace && var.log_analytics_workspace_id == null ? 1 : 0
 
   name                = local.log_analytics_workspace_name
@@ -49,14 +48,14 @@ resource "azurerm_log_analytics_workspace" "this" {
   })
 }
 
-resource "azurerm_container_app_environment" "this" {
-  name                                        = var.name
-  resource_group_name                         = var.resource_group_name
-  location                                    = var.location
-  infrastructure_subnet_id                    = var.infrastructure_subnet_id
-  internal_load_balancer_enabled              = var.internal_load_balancer_enabled
-  zone_redundancy_enabled                     = var.zone_redundancy_enabled
-  log_analytics_workspace_id                  = local.log_analytics_workspace_id
+resource "azurerm_container_app_environment" "environment" {
+  name                         = var.name
+  resource_group_name          = var.resource_group_name
+  location                     = var.location
+  infrastructure_subnet_id     = var.infrastructure_subnet_id
+  internal_load_balancer_enabled = var.infrastructure_subnet_id != null ? var.internal_load_balancer_enabled : null
+  zone_redundancy_enabled        = var.infrastructure_subnet_id != null ? var.zone_redundancy_enabled : null
+  log_analytics_workspace_id     = local.log_analytics_workspace_id
   dapr_application_insights_connection_string = var.dapr_application_insights_connection_string
 
   tags = merge(var.tags, {
@@ -64,11 +63,11 @@ resource "azurerm_container_app_environment" "this" {
   })
 }
 
-resource "azurerm_container_app" "this" {
+resource "azurerm_container_app" "app" {
   for_each = var.container_apps
 
   name                         = each.key
-  container_app_environment_id = azurerm_container_app_environment.this.id
+  container_app_environment_id = azurerm_container_app_environment.environment.id
   resource_group_name          = var.resource_group_name
   revision_mode                = try(each.value.revision_mode, "Single")
   workload_profile_name        = try(each.value.workload_profile_name, null)
@@ -103,7 +102,7 @@ resource "azurerm_container_app" "this" {
       allow_insecure_connections = try(ingress.value.allow_insecure_connections, false)
 
       dynamic "traffic_weight" {
-        for_each = coalesce(try(ingress.value.traffic_weight, null), [{ latest_revision = true, percentage = 100 }])
+        for_each = length(try(ingress.value.traffic_weight, [])) > 0 ? ingress.value.traffic_weight : [{ latest_revision = true, percentage = 100 }]
 
         content {
           label           = try(traffic_weight.value.label, null)

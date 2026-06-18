@@ -36,8 +36,8 @@ locals {
   merged_app_settings = merge(
     var.app_settings,
     var.create_application_insights && var.application_insights_id == null ? {
-      APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.this[0].connection_string
-      APPINSIGHTS_INSTRUMENTATIONKEY        = azurerm_application_insights.this[0].instrumentation_key
+      APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.application_insights[0].connection_string
+      APPINSIGHTS_INSTRUMENTATIONKEY        = azurerm_application_insights.application_insights[0].instrumentation_key
     } : {},
     var.application_insights_id != null && try(var.site_config.application_insights_connection_string, null) != null ? {
       APPLICATIONINSIGHTS_CONNECTION_STRING = var.site_config.application_insights_connection_string
@@ -78,7 +78,7 @@ check "user_assigned_identity_ids" {
   }
 }
 
-resource "azurerm_service_plan" "this" {
+resource "azurerm_service_plan" "service_plan" {
   count = var.service_plan_id == null ? 1 : 0
 
   name                = local.service_plan_name
@@ -92,7 +92,7 @@ resource "azurerm_service_plan" "this" {
   })
 }
 
-resource "azurerm_storage_account" "this" {
+resource "azurerm_storage_account" "storage_account" {
   count = var.storage_account_id == null ? 1 : 0
 
   name                     = local.default_storage_account_name
@@ -107,7 +107,7 @@ resource "azurerm_storage_account" "this" {
   })
 }
 
-resource "azurerm_application_insights" "this" {
+resource "azurerm_application_insights" "application_insights" {
   count = var.create_application_insights && var.application_insights_id == null ? 1 : 0
 
   name                = local.application_insights_name
@@ -128,31 +128,31 @@ data "azurerm_storage_account" "existing" {
 }
 
 locals {
-  service_plan_id      = coalesce(var.service_plan_id, try(azurerm_service_plan.this[0].id, null))
-  storage_account_id   = coalesce(var.storage_account_id, try(azurerm_storage_account.this[0].id, null))
+  service_plan_id      = coalesce(var.service_plan_id, try(azurerm_service_plan.service_plan[0].id, null))
+  storage_account_id   = coalesce(var.storage_account_id, try(azurerm_storage_account.storage_account[0].id, null))
   storage_account_name = coalesce(
     var.storage_account_name,
     local.default_storage_account_name,
-    try(azurerm_storage_account.this[0].name, data.azurerm_storage_account.existing[0].name)
+    try(azurerm_storage_account.storage_account[0].name, data.azurerm_storage_account.existing[0].name)
   )
   storage_uses_managed_identity = coalesce(var.storage_uses_managed_identity, var.storage_account_id != null)
-  storage_account_access_key = local.storage_uses_managed_identity ? null : (
+  storage_account_access_key_value = (
     var.storage_account_id == null ?
-    azurerm_storage_account.this[0].primary_access_key :
+    azurerm_storage_account.storage_account[0].primary_access_key :
     data.azurerm_storage_account.existing[0].primary_access_key
   )
 }
 
-resource "azurerm_linux_function_app" "this" {
+resource "azurerm_linux_function_app" "linux_function_app" {
   count = local.is_linux ? 1 : 0
 
   name                       = var.name
   resource_group_name        = var.resource_group_name
   location                   = var.location
   service_plan_id            = local.service_plan_id
-  storage_account_name          = local.storage_account_name
-  storage_account_access_key    = local.storage_account_access_key
-  storage_uses_managed_identity = local.storage_uses_managed_identity
+  storage_account_name       = local.storage_account_name
+  storage_account_access_key = local.storage_uses_managed_identity ? null : local.storage_account_access_key_value
+  storage_uses_managed_identity = local.storage_uses_managed_identity ? true : null
 
   functions_extension_version = var.functions_extension_version
   https_only                  = var.https_only
@@ -186,7 +186,7 @@ resource "azurerm_linux_function_app" "this" {
       node_version                = var.runtime_name == "node" ? var.runtime_version : null
       powershell_core_version     = var.runtime_name == "powershell" ? var.runtime_version : null
       python_version              = var.runtime_name == "python" ? var.runtime_version : null
-      use_dotnet_isolated_runtime = var.runtime_name == "dotnet-isolated"
+      use_dotnet_isolated_runtime = var.runtime_name == "dotnet-isolated" ? true : null
     }
   }
 
@@ -214,16 +214,16 @@ resource "azurerm_linux_function_app" "this" {
   }
 }
 
-resource "azurerm_windows_function_app" "this" {
+resource "azurerm_windows_function_app" "windows_function_app" {
   count = local.is_linux ? 0 : 1
 
   name                       = var.name
   resource_group_name        = var.resource_group_name
   location                   = var.location
   service_plan_id            = local.service_plan_id
-  storage_account_name          = local.storage_account_name
-  storage_account_access_key    = local.storage_account_access_key
-  storage_uses_managed_identity = local.storage_uses_managed_identity
+  storage_account_name       = local.storage_account_name
+  storage_account_access_key = local.storage_uses_managed_identity ? null : local.storage_account_access_key_value
+  storage_uses_managed_identity = local.storage_uses_managed_identity ? true : null
 
   functions_extension_version = var.functions_extension_version
   https_only                  = var.https_only
@@ -286,5 +286,5 @@ resource "azurerm_windows_function_app" "this" {
 }
 
 locals {
-  function_app = local.is_linux ? azurerm_linux_function_app.this[0] : azurerm_windows_function_app.this[0]
+  function_app = local.is_linux ? azurerm_linux_function_app.linux_function_app[0] : azurerm_windows_function_app.windows_function_app[0]
 }

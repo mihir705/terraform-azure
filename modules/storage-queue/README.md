@@ -18,6 +18,8 @@ Terraform module to create an Azure Storage Queue — a simple alternative to Se
 
 ## Usage
 
+See [terraform.tfvars.example](./terraform.tfvars.example) for copy-paste examples.
+
 ```hcl
 storage_queues = {
   background-jobs = {

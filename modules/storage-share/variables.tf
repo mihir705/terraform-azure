@@ -77,7 +77,7 @@ variable "access_tier" {
   default     = "TransactionOptimized"
 
   validation {
-    condition     = contains(["TransactionOptimized", "Hot", "Cool", "Premium"], var.access_tier)
+    condition     = var.access_tier == null || contains(["TransactionOptimized", "Hot", "Cool", "Premium"], var.access_tier)
     error_message = "access_tier must be TransactionOptimized, Hot, Cool, or Premium."
   }
 }

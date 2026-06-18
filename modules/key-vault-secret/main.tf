@@ -52,7 +52,7 @@ resource "random_password" "secret" {
   override_special = var.generate_random_password.override_special
 }
 
-resource "azurerm_key_vault_secret" "this" {
+resource "azurerm_key_vault_secret" "secret" {
   count = local.create_secret_value && !var.ignore_secret_changes ? 1 : 0
 
   name         = var.name
@@ -66,7 +66,7 @@ resource "azurerm_key_vault_secret" "this" {
   tags = var.tags
 }
 
-resource "azurerm_key_vault_secret" "this_external" {
+resource "azurerm_key_vault_secret" "secret_external" {
   count = local.create_secret_value && var.ignore_secret_changes ? 1 : 0
 
   name         = var.name

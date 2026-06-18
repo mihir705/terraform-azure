@@ -18,7 +18,7 @@ check "access_policies_require_rbac_disabled" {
   }
 }
 
-resource "azurerm_key_vault" "this" {
+resource "azurerm_key_vault" "vault" {
   name                = var.name
   location            = var.location
   resource_group_name = var.resource_group_name

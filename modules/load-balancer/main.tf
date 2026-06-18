@@ -1,5 +1,7 @@
 locals {
-  frontend_subnet_id = coalesce(var.frontend_subnet_id, try(var.subnet_ids[0], null))
+  frontend_subnet_id = var.frontend_subnet_id != null ? var.frontend_subnet_id : (
+    length(var.subnet_ids) > 0 ? var.subnet_ids[0] : null
+  )
 
   target_attachments = {
     for item in flatten([

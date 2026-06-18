@@ -30,7 +30,6 @@ locals {
       { for k, v in var.aks_clusters : "aks_clusters:${k}" => v },
       { for k, v in var.container_apps : "container_apps:${k}" => v },
       { for k, v in var.storage_shares : "storage_shares:${k}" => v },
-      { for k, v in var.aadb2c_directories : "aadb2c_directories:${k}" => v },
       { for k, v in var.event_hubs_namespaces : "event_hubs_namespaces:${k}" => v },
       ) : key => coalesce(
       try(cfg.resource_group_name, null),
@@ -61,7 +60,6 @@ locals {
       { for k, v in var.aks_clusters : "aks_clusters:${k}" => v },
       { for k, v in var.container_apps : "container_apps:${k}" => v },
       { for k, v in var.storage_shares : "storage_shares:${k}" => v },
-      { for k, v in var.aadb2c_directories : "aadb2c_directories:${k}" => v },
       { for k, v in var.event_hubs_namespaces : "event_hubs_namespaces:${k}" => v },
       ) : key => coalesce(
       try(cfg.location, null),
@@ -85,6 +83,15 @@ locals {
     for name, agw in var.application_gateways : name => coalesce(
       try(agw.subnet_id, null),
       try(module.vnet[agw.vnet_key].public_subnet_ids[agw.subnet_key], null)
+    )
+  }
+
+  virtual_machine_subnet_ids = {
+    for name, vm in var.virtual_machines : name => coalesce(
+      try(vm.subnet_id, null),
+      try(vm.subnet_tier, "private") == "public" ?
+      module.vnet[vm.vnet_key].public_subnet_ids[vm.subnet_key] :
+      module.vnet[vm.vnet_key].private_subnet_ids[vm.subnet_key]
     )
   }
 
@@ -131,6 +138,7 @@ module "key_vault" {
   name                     = each.value.name
   sku_name                 = try(each.value.sku_name, "standard")
   purge_protection_enabled = try(each.value.purge_protection_enabled, true)
+  network_acls             = try(each.value.network_acls, null)
   tags                     = merge(var.default_tags, try(each.value.tags, {}))
 }
 
@@ -142,14 +150,16 @@ module "key_vault_secret" {
   resource_group_name = local.resolve_resource_group_name["key_vault_secrets:${each.key}"]
   location            = local.resolve_location["key_vault_secrets:${each.key}"]
   name                = each.value.name
-  key_vault_id        = try(each.value.key_vault_id, null)
-  vault_key = try(each.value.vault_key, null) != null ? {
-    name                = module.key_vault[each.value.vault_key].key_vault_name
-    resource_group_name = local.resolve_resource_group_name["key_vaults:${each.value.vault_key}"]
-  } : null
+  key_vault_id        = coalesce(
+    try(each.value.key_vault_id, null),
+    try(each.value.vault_key, null) != null ? module.key_vault[each.value.vault_key].key_vault_id : null
+  )
+  vault_key = null
   secret_value             = try(each.value.secret_value, null)
   generate_random_password = try(each.value.generate_random_password, null)
   tags                     = merge(var.default_tags, try(each.value.tags, {}))
+
+  depends_on = [module.key_vault]
 }
 
 module "key_vault_key" {
@@ -160,15 +170,17 @@ module "key_vault_key" {
   resource_group_name = local.resolve_resource_group_name["key_vault_keys:${each.key}"]
   location            = local.resolve_location["key_vault_keys:${each.key}"]
   name                = each.value.name
-  key_vault_id        = try(each.value.key_vault_id, null)
-  vault_key = try(each.value.vault_key, null) != null ? {
-    name                = module.key_vault[each.value.vault_key].key_vault_name
-    resource_group_name = local.resolve_resource_group_name["key_vaults:${each.value.vault_key}"]
-  } : null
+  key_vault_id        = coalesce(
+    try(each.value.key_vault_id, null),
+    try(each.value.vault_key, null) != null ? module.key_vault[each.value.vault_key].key_vault_id : null
+  )
+  vault_key = null
   key_type = try(each.value.key_type, "RSA")
   key_size = try(each.value.key_size, 2048)
   key_opts = try(each.value.key_opts, ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"])
   tags     = merge(var.default_tags, try(each.value.tags, {}))
+
+  depends_on = [module.key_vault]
 }
 
 module "vnet" {
@@ -256,11 +268,17 @@ module "function_app" {
     try(each.value.storage_account_id, null),
     try(module.storage_account[each.value.storage_account_key].storage_account_id, null)
   )
-  vnet_integration = coalesce(
-    try(each.value.vnet_integration, null),
-    try(each.value.vnet_key, null) != null ? {
-      subnet_id = module.vnet[each.value.vnet_key].private_subnet_ids[each.value.subnet_key]
-    } : null
+  storage_account_name = coalesce(
+    try(each.value.storage_account_name, null),
+    try(module.storage_account[each.value.storage_account_key].storage_account_name, null)
+  )
+  storage_uses_managed_identity = try(each.value.storage_uses_managed_identity, null)
+  vnet_integration = (
+    try(each.value.vnet_integration, null) != null ? each.value.vnet_integration : (
+      try(each.value.vnet_key, null) != null ? {
+        subnet_id = module.vnet[each.value.vnet_key].private_subnet_ids[each.value.subnet_key]
+      } : null
+    )
   )
   tags = merge(var.default_tags, try(each.value.tags, {}))
 }
@@ -274,11 +292,27 @@ module "cdn" {
   endpoint_name       = try(each.value.endpoint_name, "${each.key}-endpoint")
   resource_group_name = local.resolve_resource_group_name["cdn_profiles:${each.key}"]
   location            = local.resolve_location["cdn_profiles:${each.key}"]
+  sku_name            = try(each.value.sku_name, "Standard_AzureFrontDoor")
+  create_origin_storage_account = try(
+    each.value.create_origin_storage_account,
+    try(each.value.storage_account_key, null) == null
+  )
+  origin_storage_account_name = try(each.value.origin_storage_account_name, null)
+  existing_origin_storage_account_name = coalesce(
+    try(each.value.existing_origin_storage_account_name, null),
+    try(module.storage_account[each.value.storage_account_key].storage_account_name, null)
+  )
+  existing_origin_storage_account_resource_group_name = coalesce(
+    try(each.value.existing_origin_storage_account_resource_group_name, null),
+    try(local.resolve_resource_group_name["storage_accounts:${each.value.storage_account_key}"], null)
+  )
   origin_host_name = coalesce(
     try(each.value.origin_host_name, null),
     try(module.storage_account[each.value.storage_account_key].primary_blob_host, null)
   )
-  tags = merge(var.default_tags, try(each.value.tags, {}))
+  origin_path = try(each.value.origin_path, "")
+  enable_origin_private_link = try(each.value.enable_origin_private_link, false)
+  tags        = merge(var.default_tags, try(each.value.tags, {}))
 }
 
 module "container_registry" {
@@ -321,17 +355,29 @@ module "virtual_machine" {
   resource_group_name = local.resolve_resource_group_name["virtual_machines:${each.key}"]
   location            = local.resolve_location["virtual_machines:${each.key}"]
   size                = each.value.size
-  subnet_id = coalesce(
-    try(each.value.subnet_id, null),
-    try(module.vnet[each.value.vnet_key].private_subnet_ids[each.value.subnet_key], null),
-    try(module.vnet[each.value.vnet_key].public_subnet_ids[each.value.subnet_key], null)
-  )
+  subnet_id           = local.virtual_machine_subnet_ids[each.key]
   nsg_id = coalesce(
     try(each.value.nsg_id, null),
     try(module.nsg[each.value.nsg_key].network_security_group_id, null)
   )
-  admin_username = try(each.value.admin_username, "azureuser")
-  tags           = merge(var.default_tags, try(each.value.tags, {}))
+  admin_username                  = try(each.value.admin_username, "azureuser")
+  admin_password                  = try(each.value.admin_password, null)
+  generate_password               = try(each.value.generate_password, null)
+  disable_password_authentication = try(each.value.disable_password_authentication, true)
+  admin_ssh_key                   = try(each.value.admin_ssh_key, null)
+  source_image_reference          = try(each.value.source_image_reference, null)
+  source_image_id                 = try(each.value.source_image_id, null)
+  availability_zone               = try(each.value.availability_zone, null)
+  private_ip_address_allocation   = try(each.value.private_ip_address_allocation, "Dynamic")
+  private_ip_address              = try(each.value.private_ip_address, null)
+  create_public_ip                = try(each.value.create_public_ip, false)
+  custom_data                     = try(each.value.custom_data, null)
+  custom_data_base64              = try(each.value.custom_data_base64, null)
+  os_disk                         = try(each.value.os_disk, null)
+  data_disks                      = try(each.value.data_disks, {})
+  identity                        = try(each.value.identity, null)
+  boot_diagnostics_storage_uri    = try(each.value.boot_diagnostics_storage_uri, null)
+  tags                            = merge(var.default_tags, try(each.value.tags, {}))
 }
 
 module "postgresql_flexible" {
@@ -339,13 +385,34 @@ module "postgresql_flexible" {
 
   for_each = var.postgresql_servers
 
-  name                = each.value.name
-  resource_group_name = local.resolve_resource_group_name["postgresql_servers:${each.key}"]
-  location            = local.resolve_location["postgresql_servers:${each.key}"]
-  sku_name            = each.value.sku_name
-  storage_mb          = try(each.value.storage_mb, 32768)
-  administrator_login = each.value.administrator_login
-  tags                = merge(var.default_tags, try(each.value.tags, {}))
+  name                          = each.value.name
+  resource_group_name           = local.resolve_resource_group_name["postgresql_servers:${each.key}"]
+  location                      = local.resolve_location["postgresql_servers:${each.key}"]
+  sku_name                      = each.value.sku_name
+  administrator_login           = each.value.administrator_login
+  postgres_version              = try(each.value.postgres_version, "16")
+  storage_mb                    = try(each.value.storage_mb, 32768)
+  storage_tier                  = try(each.value.storage_tier, null)
+  auto_grow_enabled             = try(each.value.auto_grow_enabled, true)
+  administrator_password        = try(each.value.administrator_password, null)
+  generate_password             = try(each.value.generate_password, { length = 32 })
+  backup_retention_days         = try(each.value.backup_retention_days, 7)
+  geo_redundant_backup_enabled  = try(each.value.geo_redundant_backup_enabled, false)
+  high_availability             = try(each.value.high_availability, null)
+  maintenance_window            = try(each.value.maintenance_window, null)
+  public_network_access_enabled = try(each.value.public_network_access_enabled, false)
+  delegated_subnet_id           = try(each.value.delegated_subnet_id, null)
+  private_dns_zone_id           = try(each.value.private_dns_zone_id, null)
+  create_private_dns_zone       = try(each.value.create_private_dns_zone, false)
+  private_dns_zone_name         = try(each.value.private_dns_zone_name, null)
+  virtual_network_id = try(each.value.create_private_dns_zone, false) ? coalesce(
+    try(each.value.virtual_network_id, null),
+    try(each.value.vnet_key, null) != null ? module.vnet[each.value.vnet_key].vnet_id : null
+  ) : try(each.value.virtual_network_id, null)
+  databases      = try(each.value.databases, {})
+  configurations = try(each.value.configurations, {})
+  zone           = try(each.value.zone, null)
+  tags           = merge(var.default_tags, try(each.value.tags, {}))
 }
 
 module "api_management" {
@@ -359,6 +426,10 @@ module "api_management" {
   publisher_name      = each.value.publisher_name
   publisher_email     = each.value.publisher_email
   sku_name            = try(each.value.sku_name, "Developer_1")
+  apis                = try(each.value.apis, {})
+  operations          = try(each.value.operations, {})
+  products            = try(each.value.products, {})
+  backends            = try(each.value.backends, {})
   tags                = merge(var.default_tags, try(each.value.tags, {}))
 }
 
@@ -380,12 +451,26 @@ module "service_bus_queue" {
 
   for_each = var.service_bus_queues
 
-  resource_group_name = local.resolve_resource_group_name["service_bus_queues:${each.key}"]
-  location            = local.resolve_location["service_bus_queues:${each.key}"]
-  namespace_name      = try(each.value.namespace_name, "${each.key}-ns")
-  name                = try(each.value.name, each.key)
-  create_dlq          = try(each.value.create_dlq, false)
-  tags                = merge(var.default_tags, try(each.value.tags, {}))
+  resource_group_name                  = local.resolve_resource_group_name["service_bus_queues:${each.key}"]
+  location                             = local.resolve_location["service_bus_queues:${each.key}"]
+  create_namespace                       = try(each.value.create_namespace, true)
+  namespace_name                         = try(each.value.namespace_name, "${each.key}-ns")
+  existing_namespace_name = coalesce(
+    try(each.value.existing_namespace_name, null),
+    try(each.value.namespace_topic_key, null) != null ? module.service_bus_topic[each.value.namespace_topic_key].namespace_name : null
+  )
+  existing_namespace_resource_group_name = try(each.value.existing_namespace_resource_group_name, null)
+  existing_namespace_id = coalesce(
+    try(each.value.existing_namespace_id, null),
+    try(each.value.namespace_topic_key, null) != null ? module.service_bus_topic[each.value.namespace_topic_key].namespace_id : null
+  )
+  name                                 = try(each.value.name, each.key)
+  create_dlq                           = try(each.value.create_dlq, false)
+  max_delivery_count                   = try(each.value.max_delivery_count, null)
+  lock_duration                        = try(each.value.lock_duration, null)
+  tags                                 = merge(var.default_tags, try(each.value.tags, {}))
+
+  depends_on = [module.service_bus_topic]
 }
 
 module "storage_queue" {
@@ -417,13 +502,20 @@ module "aks" {
   name                = each.value.name
   resource_group_name = local.resolve_resource_group_name["aks_clusters:${each.key}"]
   location            = local.resolve_location["aks_clusters:${each.key}"]
-  kubernetes_version  = each.value.kubernetes_version
+  kubernetes_version  = try(each.value.kubernetes_version, null)
   dns_prefix          = try(each.value.dns_prefix, each.value.name)
-  subnet_ids = coalesce(
-    try(each.value.subnet_ids, null),
-    try(values(module.vnet[each.value.vnet_key].private_subnet_ids), null)
+  subnet_ids = try(each.value.subnet_ids, null) != null ? each.value.subnet_ids : (
+    try(each.value.vnet_key, null) != null ? values(module.vnet[each.value.vnet_key].private_subnet_ids) : null
   )
-  default_node_pool     = each.value.default_node_pool
+  network_plugin          = try(each.value.network_plugin, "azure")
+  network_policy          = try(each.value.network_policy, null)
+  service_cidr            = try(each.value.service_cidr, "10.1.0.0/16")
+  dns_service_ip          = try(each.value.dns_service_ip, "10.1.0.10")
+  outbound_type           = try(each.value.outbound_type, "loadBalancer")
+  private_cluster_enabled = try(each.value.private_cluster_enabled, false)
+  azure_rbac_enabled      = try(each.value.azure_rbac_enabled, false)
+  admin_group_object_ids  = try(each.value.admin_group_object_ids, [])
+  default_node_pool       = each.value.default_node_pool
   additional_node_pools = try(each.value.additional_node_pools, {})
   tags                  = merge(var.default_tags, try(each.value.tags, {}))
 }
@@ -436,9 +528,8 @@ module "container_apps" {
   name                = each.value.name
   resource_group_name = local.resolve_resource_group_name["container_apps:${each.key}"]
   location            = local.resolve_location["container_apps:${each.key}"]
-  infrastructure_subnet_id = coalesce(
-    try(each.value.infrastructure_subnet_id, null),
-    try(module.vnet[each.value.vnet_key].private_subnet_ids[each.value.subnet_key], null)
+  infrastructure_subnet_id = try(each.value.infrastructure_subnet_id, null) != null ? try(each.value.infrastructure_subnet_id, null) : (
+    try(each.value.vnet_key, null) != null && try(each.value.subnet_key, null) != null ? module.vnet[each.value.vnet_key].private_subnet_ids[each.value.subnet_key] : null
   )
   container_apps = try(each.value.container_apps, each.value.apps)
   tags           = merge(var.default_tags, try(each.value.tags, {}))
@@ -452,24 +543,20 @@ module "storage_share" {
   name                = each.value.name
   resource_group_name = local.resolve_resource_group_name["storage_shares:${each.key}"]
   location            = local.resolve_location["storage_shares:${each.key}"]
-  storage_account_name = coalesce(
+  create_storage_account = try(each.value.create_storage_account, false)
+  storage_account_name   = try(each.value.storage_account_name, null)
+  existing_storage_account_name = coalesce(
+    try(each.value.existing_storage_account_name, null),
     try(each.value.storage_account_name, null),
     try(module.storage_account[each.value.storage_account_key].storage_account_name, null)
   )
-  quota_gb = try(each.value.quota_gb, 100)
-  tags     = merge(var.default_tags, try(each.value.tags, {}))
-}
-
-module "aadb2c" {
-  source = "../../modules/aadb2c"
-
-  for_each = var.aadb2c_directories
-
-  display_name        = each.value.display_name
-  domain_name         = each.value.domain_name
-  resource_group_name = local.resolve_resource_group_name["aadb2c_directories:${each.key}"]
-  country_code        = try(each.value.country_code, "US")
-  tags                = merge(var.default_tags, try(each.value.tags, {}))
+  existing_storage_account_resource_group_name = coalesce(
+    try(each.value.existing_storage_account_resource_group_name, null),
+    try(local.resolve_resource_group_name["storage_accounts:${each.value.storage_account_key}"], null)
+  )
+  quota_gb    = try(each.value.quota_gb, 100)
+  directories = try(each.value.directories, {})
+  tags        = merge(var.default_tags, try(each.value.tags, {}))
 }
 
 module "event_hubs" {
@@ -484,6 +571,7 @@ module "event_hubs" {
   capacity            = try(each.value.capacity, 1)
   event_hub_name      = try(each.value.event_hub_name, "kafka")
   partition_count     = try(each.value.partition_count, 2)
-  consumer_groups     = try(each.value.consumer_groups, [])
+  message_retention   = try(each.value.message_retention, null)
+  consumer_groups     = try(each.value.consumer_groups, {})
   tags                = merge(var.default_tags, try(each.value.tags, {}))
 }

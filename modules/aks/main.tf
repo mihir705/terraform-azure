@@ -45,7 +45,7 @@ check "network_policy_plugin" {
   }
 }
 
-resource "azurerm_kubernetes_cluster" "this" {
+resource "azurerm_kubernetes_cluster" "cluster" {
   name                = var.name
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -133,7 +133,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "additional" {
   for_each = var.additional_node_pools
 
   name                  = each.key
-  kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.cluster.id
   vm_size               = each.value.vm_size
   node_count            = try(each.value.enable_auto_scaling, false) ? null : try(each.value.node_count, 1)
   min_count             = try(each.value.enable_auto_scaling, false) ? try(each.value.min_count, null) : null

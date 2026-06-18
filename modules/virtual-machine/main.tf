@@ -7,14 +7,17 @@ resource "random_password" "admin" {
 }
 
 locals {
-  admin_password = coalesce(
-    var.admin_password,
-    try(random_password.admin[0].result, null)
+  admin_password = try(
+    coalesce(var.admin_password, random_password.admin[0].result),
+    null
   )
 
-  custom_data = coalesce(
-    var.custom_data_base64,
-    var.custom_data != null ? base64encode(var.custom_data) : null
+  custom_data = try(
+    coalesce(
+      var.custom_data_base64,
+      var.custom_data != null ? base64encode(var.custom_data) : null
+    ),
+    null
   )
 
   os_disk_defaults = {
@@ -75,7 +78,7 @@ check "data_disk_luns_unique" {
   }
 }
 
-resource "azurerm_public_ip" "this" {
+resource "azurerm_public_ip" "public_ip" {
   count = var.create_public_ip ? 1 : 0
 
   name                = "${var.name}-pip"
@@ -90,7 +93,7 @@ resource "azurerm_public_ip" "this" {
   })
 }
 
-resource "azurerm_network_interface" "this" {
+resource "azurerm_network_interface" "network_interface" {
   name                = "${var.name}-nic"
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -100,7 +103,7 @@ resource "azurerm_network_interface" "this" {
     subnet_id                     = var.subnet_id
     private_ip_address_allocation = var.private_ip_address_allocation
     private_ip_address            = var.private_ip_address
-    public_ip_address_id          = var.create_public_ip ? azurerm_public_ip.this[0].id : null
+    public_ip_address_id          = var.create_public_ip ? azurerm_public_ip.public_ip[0].id : null
   }
 
   tags = merge(var.tags, {
@@ -108,14 +111,14 @@ resource "azurerm_network_interface" "this" {
   })
 }
 
-resource "azurerm_network_interface_security_group_association" "this" {
+resource "azurerm_network_interface_security_group_association" "nsg_association" {
   count = var.nsg_id != null ? 1 : 0
 
-  network_interface_id      = azurerm_network_interface.this.id
+  network_interface_id      = azurerm_network_interface.network_interface.id
   network_security_group_id = var.nsg_id
 }
 
-resource "azurerm_linux_virtual_machine" "this" {
+resource "azurerm_linux_virtual_machine" "linux_vm" {
   name                = var.name
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -125,7 +128,7 @@ resource "azurerm_linux_virtual_machine" "this" {
   zone                = var.availability_zone
 
   disable_password_authentication = var.disable_password_authentication
-  network_interface_ids           = [azurerm_network_interface.this.id]
+  network_interface_ids           = [azurerm_network_interface.network_interface.id]
   custom_data                     = local.custom_data
 
   dynamic "admin_ssh_key" {
@@ -209,7 +212,7 @@ resource "azurerm_virtual_machine_data_disk_attachment" "data" {
   for_each = var.data_disks
 
   managed_disk_id    = azurerm_managed_disk.data[each.key].id
-  virtual_machine_id = azurerm_linux_virtual_machine.this.id
+  virtual_machine_id = azurerm_linux_virtual_machine.linux_vm.id
   lun                = each.value.lun
   caching            = each.value.caching
 }

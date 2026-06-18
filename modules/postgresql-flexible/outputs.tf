@@ -1,21 +1,21 @@
 output "server_id" {
   description = "PostgreSQL Flexible Server ID."
-  value       = azurerm_postgresql_flexible_server.this.id
+  value       = azurerm_postgresql_flexible_server.server.id
 }
 
 output "server_name" {
   description = "PostgreSQL Flexible Server name."
-  value       = azurerm_postgresql_flexible_server.this.name
+  value       = azurerm_postgresql_flexible_server.server.name
 }
 
 output "fqdn" {
   description = "Fully qualified domain name of the server."
-  value       = azurerm_postgresql_flexible_server.this.fqdn
+  value       = azurerm_postgresql_flexible_server.server.fqdn
 }
 
 output "administrator_login" {
   description = "Administrator login name."
-  value       = azurerm_postgresql_flexible_server.this.administrator_login
+  value       = azurerm_postgresql_flexible_server.server.administrator_login
 }
 
 output "administrator_password" {
@@ -31,5 +31,5 @@ output "private_dns_zone_id" {
 
 output "database_ids" {
   description = "Database resource IDs keyed by logical name."
-  value       = { for name, db in azurerm_postgresql_flexible_server_database.this : name => db.id }
+  value       = { for name, db in azurerm_postgresql_flexible_server_database.database : name => db.id }
 }

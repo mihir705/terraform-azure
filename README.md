@@ -1,6 +1,6 @@
 # terraform-azure
 
-Reusable Terraform modules for Azure Storage Account, Key Vault (secrets and keys), Function App, CDN, Virtual Network, Load Balancer, Application Gateway, Network Security Groups, Container Registry, Azure DevOps-style CI/CD patterns, RBAC roles, Virtual Machines, PostgreSQL Flexible Server, API Management, Service Bus, Storage Queue, AKS, Container Apps, Azure Files, Azure AD B2C, and Event Hubs, deployed per environment.
+Reusable Terraform modules for Azure Storage Account, Key Vault (secrets and keys), Function App, CDN, Virtual Network, Load Balancer, Application Gateway, Network Security Groups, Container Registry, Azure DevOps-style CI/CD patterns, RBAC roles, Virtual Machines, PostgreSQL Flexible Server, API Management, Service Bus, Storage Queue, AKS, Container Apps, Azure Files, and Event Hubs, deployed per environment.
 
 ## Structure
 
@@ -29,7 +29,6 @@ terraform-azure/
 │   ├── aks/
 │   ├── container-apps/
 │   ├── storage-share/
-│   ├── aadb2c/
 │   └── event-hubs/
 └── environments/
     └── prod/
@@ -69,7 +68,7 @@ Add more environments by copying `environments/prod` to `environments/dev`, `env
 | `ecr` | `container-registry` |
 | `ecs` | `container-apps` |
 | `efs` | `storage-share` |
-| `cognito` | `aadb2c` |
+| `cognito` | Use [Microsoft Entra External ID](https://aka.ms/EEIDOverview) (not Terraform-managed in this repo) |
 | `msk` | `event-hubs` |
 
 ## How it works
@@ -100,7 +99,6 @@ Each **environment** (e.g. `prod`) manages all resources for that environment in
 | `aks_clusters` | AKS |
 | `container_apps` | Container Apps |
 | `storage_shares` | Azure Files |
-| `aadb2c_directories` | Azure AD B2C |
 | `event_hubs_namespaces` | Event Hubs |
 
 Each module includes a **`terraform.tfvars.example`** alongside its README with focused configuration examples. Copy the blocks you need into `environments/prod/terraform.tfvars`.
@@ -184,14 +182,30 @@ function_apps = {
 
 ## Module documentation
 
-- [modules/storage-account/README.md](modules/storage-account/README.md)
-- [modules/key-vault/README.md](modules/key-vault/README.md)
-- [modules/key-vault-secret/README.md](modules/key-vault-secret/README.md)
-- [modules/key-vault-key/README.md](modules/key-vault-key/README.md)
-- [modules/vnet/README.md](modules/vnet/README.md)
-- [modules/nsg/README.md](modules/nsg/README.md)
-- [modules/function-app/README.md](modules/function-app/README.md)
-- [modules/postgresql-flexible/README.md](modules/postgresql-flexible/README.md)
+Each module under `modules/` has a README and `terraform.tfvars.example`:
+
 - [modules/aks/README.md](modules/aks/README.md)
+- [modules/api-management/README.md](modules/api-management/README.md)
+- [modules/application-gateway/README.md](modules/application-gateway/README.md)
+- [modules/cdn/README.md](modules/cdn/README.md)
+- [modules/container-apps/README.md](modules/container-apps/README.md)
+- [modules/container-registry/README.md](modules/container-registry/README.md)
+- [modules/event-hubs/README.md](modules/event-hubs/README.md)
+- [modules/function-app/README.md](modules/function-app/README.md)
+- [modules/key-vault/README.md](modules/key-vault/README.md)
+- [modules/key-vault-key/README.md](modules/key-vault-key/README.md)
+- [modules/key-vault-secret/README.md](modules/key-vault-secret/README.md)
+- [modules/load-balancer/README.md](modules/load-balancer/README.md)
+- [modules/nsg/README.md](modules/nsg/README.md)
+- [modules/postgresql-flexible/README.md](modules/postgresql-flexible/README.md)
+- [modules/rbac-role/README.md](modules/rbac-role/README.md)
+- [modules/resource-group/README.md](modules/resource-group/README.md)
+- [modules/service-bus-queue/README.md](modules/service-bus-queue/README.md)
+- [modules/service-bus-topic/README.md](modules/service-bus-topic/README.md)
+- [modules/storage-account/README.md](modules/storage-account/README.md)
+- [modules/storage-queue/README.md](modules/storage-queue/README.md)
+- [modules/storage-share/README.md](modules/storage-share/README.md)
+- [modules/virtual-machine/README.md](modules/virtual-machine/README.md)
+- [modules/vnet/README.md](modules/vnet/README.md)
 
 Never commit real secret values to version control.

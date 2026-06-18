@@ -1,13 +1,18 @@
 data "azurerm_servicebus_namespace" "existing" {
-  count = var.create_namespace ? 0 : 1
+  count = var.create_namespace || var.existing_namespace_id != null ? 0 : 1
 
   name                = var.existing_namespace_name
   resource_group_name = coalesce(var.existing_namespace_resource_group_name, var.resource_group_name)
 }
 
 locals {
-  namespace_id   = var.create_namespace ? azurerm_servicebus_namespace.namespace[0].id : data.azurerm_servicebus_namespace.existing[0].id
-  namespace_name = var.create_namespace ? azurerm_servicebus_namespace.namespace[0].name : data.azurerm_servicebus_namespace.existing[0].name
+  namespace_id = var.create_namespace ? azurerm_servicebus_namespace.namespace[0].id : (
+    var.existing_namespace_id != null ? var.existing_namespace_id : data.azurerm_servicebus_namespace.existing[0].id
+  )
+  namespace_name = var.create_namespace ? azurerm_servicebus_namespace.namespace[0].name : coalesce(
+    var.existing_namespace_name,
+    try(data.azurerm_servicebus_namespace.existing[0].name, null)
+  )
 
   queue_name_tag = (
     var.name != null ? var.name :
@@ -34,8 +39,8 @@ check "namespace_name_required" {
 
 check "existing_namespace_required" {
   assert {
-    condition     = var.create_namespace || (var.existing_namespace_name != null && var.existing_namespace_name != "")
-    error_message = "existing_namespace_name is required when create_namespace is false."
+    condition     = var.create_namespace || var.existing_namespace_id != null || (var.existing_namespace_name != null && var.existing_namespace_name != "")
+    error_message = "existing_namespace_id or existing_namespace_name is required when create_namespace is false."
   }
 }
 

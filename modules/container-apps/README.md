@@ -22,16 +22,13 @@ Terraform module to create an Azure Container Apps Environment and Container App
 
 See [terraform.tfvars.example](./terraform.tfvars.example) for copy-paste examples.
 
-### Web API with HTTP scaling
+### Consumption environment with HTTP scaling
 
 ```hcl
-container_app_environments = {
+container_apps = {
   platform = {
-    name                = "my-company-cae-prod"
-    resource_group_name = "my-company-rg-prod"
-    location            = "eastus"
-    vnet_key            = "main"
-    subnet_key          = "container-apps"
+    name               = "my-company-cae-prod"
+    resource_group_key = "app"
 
     container_apps = {
       api = {
@@ -45,9 +42,9 @@ container_app_environments = {
           max_replicas = 10
           containers = {
             api = {
-              name  = "api"
-              image = "mycompanyprod.azurecr.io/api:latest"
-              cpu   = 0.5
+              name   = "api"
+              image  = "mycompanyprod.azurecr.io/api:latest"
+              cpu    = 0.5
               memory = "1Gi"
             }
           }
@@ -66,11 +63,29 @@ container_app_environments = {
 }
 ```
 
+### VNet-integrated environment
+
+```hcl
+container_apps = {
+  platform-vnet = {
+    name               = "my-company-cae-vnet-prod"
+    resource_group_key = "app"
+    vnet_key           = "main"
+    subnet_key         = "container-apps"
+
+    container_apps = {
+      api = { /* same as above */ }
+    }
+  }
+}
+```
+
 ## Environment-level wiring
 
 | Field | Resolves from |
 |-------|----------------|
-| `vnet_key` + `subnet_key` | Delegated infrastructure subnet from VNet module |
+| `resource_group_key` | Resource group module |
+| `vnet_key` + `subnet_key` | Delegated infrastructure subnet from VNet module (optional) |
 | `secrets.*.key_vault_secret_id` | Key Vault module |
 | `secrets.*.identity` | User-assigned identity with Key Vault access |
 
@@ -96,6 +111,7 @@ container_app_environments = {
 
 ## Notes
 
+- **Consumption environments** omit `vnet_key` / `subnet_key`; ingress is public by default.
 - Provide a **delegated subnet** (`Microsoft.App/environments`) for VNet-integrated environments.
 - Key Vault secrets require a **user-assigned managed identity** with Get permission on the vault.
 - HTTP scale rules use KEDA; set `min_replicas = 0` for scale-to-zero.
